@@ -295,6 +295,24 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
   }, [cubeletSize, gap]);
 
   // ==========================================
+  // OPTIMIZATION: Dispose materials/geometry on unmount
+  // ==========================================
+  useEffect(() => {
+    return () => {
+      // Dispose all shared materials
+      sharedMaterials.inner.dispose();
+      sharedMaterials.front.dispose();
+      sharedMaterials.back.dispose();
+      sharedMaterials.left.dispose();
+      sharedMaterials.right.dispose();
+      sharedMaterials.top.dispose();
+      sharedMaterials.bottom.dispose();
+      // Dispose shared geometry
+      stickerGeometry.dispose();
+    };
+  }, [sharedMaterials, stickerGeometry]);
+
+  // ==========================================
   // OPTIMIZATION 2: Reusable Vector3 objects
   // ==========================================
   const tempVectors = useRef({
@@ -302,6 +320,18 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
     anticipationOffset: new Vector3(),
     spiralOffset: new Vector3(),
     explodeOffset: new Vector3(),
+  });
+
+  // ==========================================
+  // OPTIMIZATION: Track previous material state to avoid unnecessary updates
+  // ==========================================
+  const prevMaterialState = useRef({
+    metalness: -1,
+    roughness: -1,
+    emissiveIntensity: -1,
+    stickerMetalness: -1,
+    stickerRoughness: -1,
+    stickerEmissive: -1,
   });
 
   // Track completed phases to update cubelet states
@@ -509,24 +539,45 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
     const t = clock.elapsedTime;
     const vecs = tempVectors.current;
 
-    // Update shared materials based on anticipation
+    // Update shared materials based on anticipation (only when values change)
     const metalness = 0.3 + anticipationProgress * 0.2;
     const roughness = 0.7 - anticipationProgress * 0.2;
-    sharedMaterials.inner.metalness = metalness;
-    sharedMaterials.inner.roughness = roughness;
-    sharedMaterials.inner.emissiveIntensity = emissiveIntensity;
-
-    // Update sticker materials
     const stickerMetalness = 0.1 + anticipationProgress * 0.1;
     const stickerRoughness = 0.4 - anticipationProgress * 0.1;
     const stickerEmissive = emissiveIntensity * 0.5;
 
-    FACE_TYPES.forEach((face) => {
-      const mat = sharedMaterials[face];
-      mat.metalness = stickerMetalness;
-      mat.roughness = stickerRoughness;
-      mat.emissiveIntensity = stickerEmissive;
-    });
+    const prev = prevMaterialState.current;
+
+    // Conditional update for inner material
+    if (
+      prev.metalness !== metalness ||
+      prev.roughness !== roughness ||
+      prev.emissiveIntensity !== emissiveIntensity
+    ) {
+      sharedMaterials.inner.metalness = metalness;
+      sharedMaterials.inner.roughness = roughness;
+      sharedMaterials.inner.emissiveIntensity = emissiveIntensity;
+      prev.metalness = metalness;
+      prev.roughness = roughness;
+      prev.emissiveIntensity = emissiveIntensity;
+    }
+
+    // Conditional update for sticker materials
+    if (
+      prev.stickerMetalness !== stickerMetalness ||
+      prev.stickerRoughness !== stickerRoughness ||
+      prev.stickerEmissive !== stickerEmissive
+    ) {
+      FACE_TYPES.forEach((face) => {
+        const mat = sharedMaterials[face];
+        mat.metalness = stickerMetalness;
+        mat.roughness = stickerRoughness;
+        mat.emissiveIntensity = stickerEmissive;
+      });
+      prev.stickerMetalness = stickerMetalness;
+      prev.stickerRoughness = stickerRoughness;
+      prev.stickerEmissive = stickerEmissive;
+    }
 
     // Rotation slowdown during anticipation
     const rotationDamping =

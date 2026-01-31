@@ -19,7 +19,6 @@ function Lights() {
       <directionalLight
         position={[5, 5, 5]}
         intensity={1}
-        castShadow
       />
       <directionalLight
         position={[-5, 3, -5]}
@@ -63,13 +62,22 @@ function LoadingFallback() {
 export function Scene({ progress }: SceneProps) {
   return (
     <Canvas
-      shadows
       gl={{
         antialias: true,
         alpha: true,
         powerPreference: "high-performance",
       }}
       style={{ background: "transparent" }}
+      onCreated={({ gl }) => {
+        const canvas = gl.domElement;
+        canvas.addEventListener("webglcontextlost", (e) => {
+          e.preventDefault();
+          console.warn("WebGL context lost - attempting recovery");
+        });
+        canvas.addEventListener("webglcontextrestored", () => {
+          console.log("WebGL context restored");
+        });
+      }}
     >
       <PerspectiveCamera makeDefault position={[0, 0, 8]} fov={50} />
 
