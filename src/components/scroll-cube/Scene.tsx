@@ -2,7 +2,6 @@
 
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, Environment } from "@react-three/drei";
-import { SRGBColorSpace } from "three";
 import { RubiksCube } from "./RubiksCube";
 import { Suspense } from "react";
 
@@ -65,17 +64,14 @@ export function Scene({ progress }: SceneProps) {
   return (
     <Canvas
       shadows
-      dpr={[1, 2]} // PERFORMANCE: Limit DPR to max 2x on Retina displays
       gl={{
         antialias: true,
         alpha: true,
         powerPreference: "high-performance",
-        outputColorSpace: SRGBColorSpace, // PERFORMANCE: Explicit color space
       }}
       style={{ background: "transparent" }}
     >
-      {/* PERFORMANCE: Tighter frustum for better Z-buffer precision */}
-      <PerspectiveCamera makeDefault position={[0, 0, 8]} fov={50} near={0.5} far={50} />
+      <PerspectiveCamera makeDefault position={[0, 0, 8]} fov={50} />
 
       <Suspense fallback={<LoadingFallback />}>
         <Lights />
