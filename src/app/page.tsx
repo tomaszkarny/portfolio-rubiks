@@ -13,16 +13,16 @@ export default function Home() {
         {/* Hero Section */}
         <section className="h-screen flex flex-col items-center justify-center px-6">
           <div className="text-center max-w-4xl">
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight">
-              <span className="bg-gradient-to-r from-cyan-400 via-purple-500 to-green-400 bg-clip-text text-transparent">
-                Web3
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight" style={{ color: '#2d2a26' }}>
+              <span style={{ fontStyle: 'italic' }}>
+                Sketch
               </span>{" "}
-              <span className="text-white">Revolution</span>
+              <span style={{ color: '#3d3a36' }}>Cube</span>
             </h1>
-            <p className="text-xl md:text-2xl text-gray-400 mb-8">
-              Scroll down to unfold the future
+            <p className="text-xl md:text-2xl mb-8" style={{ color: '#5a5550' }}>
+              Scroll down to unfold the drawing
             </p>
-            <div className="flex items-center justify-center gap-2 text-gray-500">
+            <div className="flex items-center justify-center gap-2" style={{ color: '#7a756e' }}>
               <svg
                 className="w-6 h-6 animate-bounce"
                 fill="none"
@@ -44,29 +44,29 @@ export default function Home() {
         {/* Feature Section 1 */}
         <section className="min-h-screen flex flex-col items-center justify-center px-6 py-20">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl md:text-5xl font-bold text-white mb-8">
-              Decentralized by Design
+            <h2 className="text-3xl md:text-5xl font-bold mb-8" style={{ color: '#2d2a26' }}>
+              Hand-Drawn Style
             </h2>
-            <p className="text-lg md:text-xl text-gray-400 leading-relaxed mb-12">
-              Experience the next generation of digital infrastructure.
-              Built on trustless protocols, secured by mathematics,
-              and powered by a global network of validators.
+            <p className="text-lg md:text-xl leading-relaxed mb-12" style={{ color: '#5a5550' }}>
+              Watch the cube come to life with pencil sketch aesthetics.
+              Cross-hatching reacts to light, creating depth and dimension
+              just like a real sketchbook drawing.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <FeatureCard
-                icon="🔐"
-                title="Secure"
-                description="Military-grade cryptography protects every transaction"
+                icon="✏️"
+                title="Hatching"
+                description="Dynamic cross-hatching responds to lighting direction"
               />
               <FeatureCard
-                icon="⚡"
-                title="Fast"
-                description="Near-instant finality with sub-second block times"
+                icon="📄"
+                title="Paper"
+                description="Warm cream background mimics real sketchbook paper"
               />
               <FeatureCard
-                icon="🌍"
-                title="Global"
-                description="Accessible to anyone, anywhere, anytime"
+                icon="✨"
+                title="Animated"
+                description="Subtle wobble effect for authentic hand-drawn feel"
               />
             </div>
           </div>
@@ -75,18 +75,27 @@ export default function Home() {
         {/* Feature Section 2 */}
         <section className="min-h-screen flex flex-col items-center justify-center px-6 py-20">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl md:text-5xl font-bold text-white mb-8">
-              The Cube Unfolds
+            <h2 className="text-3xl md:text-5xl font-bold mb-8" style={{ color: '#2d2a26' }}>
+              The Cube Explodes
             </h2>
-            <p className="text-lg md:text-xl text-gray-400 leading-relaxed mb-12">
-              As you scroll, the cube transforms—revealing its inner structure.
-              Each face represents a layer of our technology stack,
-              working together in perfect harmony.
+            <p className="text-lg md:text-xl leading-relaxed mb-12" style={{ color: '#5a5550' }}>
+              As you scroll, the cube rotates, pauses, then dramatically
+              explodes into its 27 individual cubelets—all rendered
+              in beautiful monochromatic pencil sketch style.
             </p>
-            <div className="inline-flex items-center gap-4 px-6 py-3 border border-cyan-500/30 rounded-full bg-cyan-500/5">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span className="text-cyan-400 font-medium">
-                Interactive 3D Experience
+            <div
+              className="inline-flex items-center gap-4 px-6 py-3 rounded-full"
+              style={{
+                border: '2px solid rgba(45, 42, 38, 0.3)',
+                backgroundColor: 'rgba(45, 42, 38, 0.05)'
+              }}
+            >
+              <span
+                className="w-2 h-2 rounded-full animate-pulse"
+                style={{ backgroundColor: '#2d2a26' }}
+              />
+              <span className="font-medium" style={{ color: '#2d2a26' }}>
+                Interactive 3D Sketch
               </span>
             </div>
           </div>
@@ -106,10 +115,16 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div className="p-6 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors">
+    <div
+      className="p-6 rounded-xl backdrop-blur-sm transition-colors"
+      style={{
+        backgroundColor: 'rgba(45, 42, 38, 0.05)',
+        border: '2px solid rgba(45, 42, 38, 0.15)',
+      }}
+    >
       <div className="text-4xl mb-4">{icon}</div>
-      <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
-      <p className="text-gray-400 text-sm">{description}</p>
+      <h3 className="text-xl font-semibold mb-2" style={{ color: '#2d2a26' }}>{title}</h3>
+      <p className="text-sm" style={{ color: '#5a5550' }}>{description}</p>
     </div>
   );
 }

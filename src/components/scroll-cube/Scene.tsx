@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, PerspectiveCamera, Environment } from "@react-three/drei";
+import { PerspectiveCamera } from "@react-three/drei";
 import { RubiksCube } from "./RubiksCube";
 import { Suspense } from "react";
 
@@ -9,43 +9,14 @@ interface SceneProps {
   progress: number;
 }
 
+// Simplified lighting for pencil sketch style - clear shadows for hatching
 function Lights() {
   return (
     <>
-      {/* Ambient light for base illumination */}
-      <ambientLight intensity={0.4} />
-
-      {/* Main directional lights for better cube visibility */}
-      <directionalLight
-        position={[5, 5, 5]}
-        intensity={1}
-      />
-      <directionalLight
-        position={[-5, 3, -5]}
-        intensity={0.5}
-      />
-
-      {/* Soft fill light from below */}
-      <pointLight
-        position={[0, -5, 0]}
-        color="#ffffff"
-        intensity={0.3}
-        distance={20}
-      />
-
-      {/* Accent lights for depth */}
-      <pointLight
-        position={[-4, 2, 4]}
-        color="#ffffff"
-        intensity={0.5}
-        distance={15}
-      />
-      <pointLight
-        position={[4, 2, 4]}
-        color="#ffffff"
-        intensity={0.5}
-        distance={15}
-      />
+      {/* Single main directional light for clear hatching shadows */}
+      <directionalLight position={[5, 5, 5]} intensity={1.2} />
+      {/* Weak ambient for fill (prevents pure black areas) */}
+      <ambientLight intensity={0.3} />
     </>
   );
 }
@@ -84,7 +55,7 @@ export function Scene({ progress }: SceneProps) {
       <Suspense fallback={<LoadingFallback />}>
         <Lights />
         <RubiksCube progress={progress} size={2.4} />
-        <Environment preset="studio" />
+        {/* Removed Environment preset - using simple lighting for sketch style */}
       </Suspense>
 
       {/* Optional: Enable orbit controls for debugging */}

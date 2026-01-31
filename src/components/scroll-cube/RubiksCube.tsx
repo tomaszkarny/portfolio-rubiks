@@ -5,11 +5,11 @@ import { useFrame } from "@react-three/fiber";
 import {
   Group,
   Vector3,
-  MeshStandardMaterial,
   PlaneGeometry,
-  Color,
+  ShaderMaterial,
 } from "three";
 import { RoundedBox } from "@react-three/drei";
+import { SketchMaterial } from "@/shaders/SketchMaterial";
 
 interface RubiksCubeProps {
   progress: number; // 0 = assembled cube, 1 = fully exploded
@@ -172,8 +172,8 @@ interface OptimizedCubeletProps {
   data: CubeletData;
   cubeletSize: number;
   radius: number;
-  innerMaterial: MeshStandardMaterial;
-  stickerMaterials: Record<FaceType, MeshStandardMaterial>;
+  innerMaterial: ShaderMaterial;
+  stickerMaterials: Record<FaceType, ShaderMaterial>;
   stickerGeometry: PlaneGeometry;
 }
 
@@ -259,32 +259,24 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
   const cubeletGroupRefs = useRef<(Group | null)[]>(new Array(27).fill(null));
 
   // ==========================================
-  // OPTIMIZATION 1: Shared materials (7 total)
+  // OPTIMIZATION 1: Shared Sketch materials (7 total)
   // ==========================================
   const sharedMaterials = useMemo(() => {
-    const createStickerMaterial = (color: string) =>
-      new MeshStandardMaterial({
-        color,
-        metalness: 0.1,
-        roughness: 0.4,
-        emissive: new Color(color),
-        emissiveIntensity: 0,
-      });
+    // All materials use the same pencil sketch style (monochromatic)
+    const createSketchMaterial = () => {
+      const mat = new SketchMaterial();
+      // Cream paper, dark sepia ink - already set as defaults
+      return mat;
+    };
 
     return {
-      inner: new MeshStandardMaterial({
-        color: RUBIKS_COLORS.inner,
-        metalness: 0.3,
-        roughness: 0.7,
-        emissive: new Color("#ffffff"),
-        emissiveIntensity: 0,
-      }),
-      front: createStickerMaterial(RUBIKS_COLORS.front),
-      back: createStickerMaterial(RUBIKS_COLORS.back),
-      left: createStickerMaterial(RUBIKS_COLORS.left),
-      right: createStickerMaterial(RUBIKS_COLORS.right),
-      top: createStickerMaterial(RUBIKS_COLORS.top),
-      bottom: createStickerMaterial(RUBIKS_COLORS.bottom),
+      inner: createSketchMaterial(),
+      front: createSketchMaterial(),
+      back: createSketchMaterial(),
+      left: createSketchMaterial(),
+      right: createSketchMaterial(),
+      top: createSketchMaterial(),
+      bottom: createSketchMaterial(),
     };
   }, []);
 
@@ -299,14 +291,8 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
   // ==========================================
   useEffect(() => {
     return () => {
-      // Dispose all shared materials
-      sharedMaterials.inner.dispose();
-      sharedMaterials.front.dispose();
-      sharedMaterials.back.dispose();
-      sharedMaterials.left.dispose();
-      sharedMaterials.right.dispose();
-      sharedMaterials.top.dispose();
-      sharedMaterials.bottom.dispose();
+      // Dispose all shared sketch materials
+      Object.values(sharedMaterials).forEach((mat) => mat.dispose());
       // Dispose shared geometry
       stickerGeometry.dispose();
     };
@@ -322,17 +308,8 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
     explodeOffset: new Vector3(),
   });
 
-  // ==========================================
-  // OPTIMIZATION: Track previous material state to avoid unnecessary updates
-  // ==========================================
-  const prevMaterialState = useRef({
-    metalness: -1,
-    roughness: -1,
-    emissiveIntensity: -1,
-    stickerMetalness: -1,
-    stickerRoughness: -1,
-    stickerEmissive: -1,
-  });
+  // Track previous time for shader updates
+  const prevTimeRef = useRef(0);
 
   // Track completed phases to update cubelet states
   const [completedPhases, setCompletedPhases] = useState<number>(0);
@@ -539,44 +516,15 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
     const t = clock.elapsedTime;
     const vecs = tempVectors.current;
 
-    // Update shared materials based on anticipation (only when values change)
-    const metalness = 0.3 + anticipationProgress * 0.2;
-    const roughness = 0.7 - anticipationProgress * 0.2;
-    const stickerMetalness = 0.1 + anticipationProgress * 0.1;
-    const stickerRoughness = 0.4 - anticipationProgress * 0.1;
-    const stickerEmissive = emissiveIntensity * 0.5;
-
-    const prev = prevMaterialState.current;
-
-    // Conditional update for inner material
-    if (
-      prev.metalness !== metalness ||
-      prev.roughness !== roughness ||
-      prev.emissiveIntensity !== emissiveIntensity
-    ) {
-      sharedMaterials.inner.metalness = metalness;
-      sharedMaterials.inner.roughness = roughness;
-      sharedMaterials.inner.emissiveIntensity = emissiveIntensity;
-      prev.metalness = metalness;
-      prev.roughness = roughness;
-      prev.emissiveIntensity = emissiveIntensity;
-    }
-
-    // Conditional update for sticker materials
-    if (
-      prev.stickerMetalness !== stickerMetalness ||
-      prev.stickerRoughness !== stickerRoughness ||
-      prev.stickerEmissive !== stickerEmissive
-    ) {
-      FACE_TYPES.forEach((face) => {
-        const mat = sharedMaterials[face];
-        mat.metalness = stickerMetalness;
-        mat.roughness = stickerRoughness;
-        mat.emissiveIntensity = stickerEmissive;
+    // Update shader time for wobble animation (throttle to avoid excessive updates)
+    if (t - prevTimeRef.current > 0.016) {
+      // ~60fps
+      Object.values(sharedMaterials).forEach((mat) => {
+        if (mat.uniforms?.uTime) {
+          mat.uniforms.uTime.value = t;
+        }
       });
-      prev.stickerMetalness = stickerMetalness;
-      prev.stickerRoughness = stickerRoughness;
-      prev.stickerEmissive = stickerEmissive;
+      prevTimeRef.current = t;
     }
 
     // Rotation slowdown during anticipation

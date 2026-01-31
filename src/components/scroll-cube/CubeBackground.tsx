@@ -36,54 +36,74 @@ export function CubeBackground() {
 
   if (!mounted) {
     return (
-      <div className="fixed inset-0 z-0 bg-gradient-to-b from-[#0a0a1a] to-[#1a1a2e]" />
+      <div className="fixed inset-0 z-0 bg-[#f5f0e6]" />
     );
   }
 
   return (
     <div className="fixed inset-0 z-0">
-      {/* Gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a] via-[#0f0f1f] to-[#1a1a2e]" />
-
-      {/* Subtle grid pattern */}
+      {/* Cream paper background with subtle gradient */}
       <div
-        className="absolute inset-0 opacity-10"
+        className="absolute inset-0"
         style={{
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
-          `,
-          backgroundSize: "50px 50px",
+          background: "linear-gradient(to bottom, #f8f4eb, #f0ebe0)",
         }}
       />
 
-      {/* Neon glow effects */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div
-          className="absolute w-[600px] h-[600px] rounded-full blur-[150px] opacity-20"
-          style={{
-            background: "radial-gradient(circle, #00ffff 0%, transparent 70%)",
-            left: "10%",
-            top: "30%",
-          }}
-        />
-        <div
-          className="absolute w-[500px] h-[500px] rounded-full blur-[150px] opacity-20"
-          style={{
-            background: "radial-gradient(circle, #ff00ff 0%, transparent 70%)",
-            right: "10%",
-            top: "40%",
-          }}
-        />
-        <div
-          className="absolute w-[400px] h-[400px] rounded-full blur-[120px] opacity-15"
-          style={{
-            background: "radial-gradient(circle, #00ff00 0%, transparent 70%)",
-            left: "40%",
-            bottom: "20%",
-          }}
-        />
-      </div>
+      {/* Paper texture - fine grain pattern */}
+      <div
+        className="absolute inset-0 opacity-60"
+        style={{
+          backgroundImage: `
+            repeating-linear-gradient(
+              0deg,
+              transparent,
+              transparent 2px,
+              rgba(0, 0, 0, 0.02) 2px,
+              rgba(0, 0, 0, 0.02) 4px
+            ),
+            repeating-linear-gradient(
+              90deg,
+              transparent,
+              transparent 2px,
+              rgba(0, 0, 0, 0.015) 2px,
+              rgba(0, 0, 0, 0.015) 4px
+            )
+          `,
+        }}
+      />
+
+      {/* Paper fiber texture - diagonal lines */}
+      <div
+        className="absolute inset-0 opacity-30"
+        style={{
+          backgroundImage: `
+            repeating-linear-gradient(
+              45deg,
+              transparent,
+              transparent 10px,
+              rgba(139, 119, 101, 0.03) 10px,
+              rgba(139, 119, 101, 0.03) 11px
+            ),
+            repeating-linear-gradient(
+              -45deg,
+              transparent,
+              transparent 15px,
+              rgba(139, 119, 101, 0.02) 15px,
+              rgba(139, 119, 101, 0.02) 16px
+            )
+          `,
+        }}
+      />
+
+      {/* Subtle vignette for sketchbook feel */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, transparent 50%, rgba(139, 119, 101, 0.15) 100%)",
+        }}
+      />
 
       {/* Three.js Canvas */}
       <div className="absolute inset-0">
