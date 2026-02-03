@@ -70,6 +70,11 @@ interface CubeletData {
   };
   originalLayer: { x: number; y: number; z: number };
   tremor: { x: number; y: number; z: number };
+  // Pre-calculated static values for performance
+  distanceFromCenter: number;
+  isCorner: boolean;
+  isEdge: boolean;
+  velocityMultiplier: number;
 }
 
 interface CubeletState {
@@ -308,16 +313,16 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
     explodeOffset: new Vector3(),
   });
 
-  // Track previous time for shader updates
-  const prevTimeRef = useRef(0);
 
   // Track completed phases to update cubelet states
   const [completedPhases, setCompletedPhases] = useState<number>(0);
 
   // Generate all 27 cubelets with their positions and colors
+  // Pre-calculate static values that don't change during animation
   const cubelets = useMemo(() => {
     const result: CubeletData[] = [];
     let index = 0;
+    const maxDistance = Math.sqrt(3); // Pre-calculate for normalization
 
     for (let x = -1; x <= 1; x++) {
       for (let y = -1; y <= 1; y++) {
@@ -331,6 +336,13 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
           if (y === 1) colors.top = RUBIKS_COLORS.top;
           if (y === -1) colors.bottom = RUBIKS_COLORS.bottom;
 
+          // Pre-calculate static explosion properties
+          const distanceFromCenter = Math.sqrt(x * x + y * y + z * z);
+          const absSum = Math.abs(x) + Math.abs(y) + Math.abs(z);
+          const isCorner = absSum === 3;
+          const isEdge = absSum === 2;
+          const velocityMultiplier = isCorner ? 1.4 : isEdge ? 1.15 : 0.85;
+
           result.push({
             key: `${x}-${y}-${z}`,
             index,
@@ -342,6 +354,11 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
               y: Math.random() * 2 - 1,
               z: Math.random() * 2 - 1,
             },
+            // Store pre-calculated values
+            distanceFromCenter,
+            isCorner,
+            isEdge,
+            velocityMultiplier,
           });
           index++;
         }
@@ -516,16 +533,7 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
     const t = clock.elapsedTime;
     const vecs = tempVectors.current;
 
-    // Update shader time for wobble animation (throttle to avoid excessive updates)
-    if (t - prevTimeRef.current > 0.016) {
-      // ~60fps
-      Object.values(sharedMaterials).forEach((mat) => {
-        if (mat.uniforms?.uTime) {
-          mat.uniforms.uTime.value = t;
-        }
-      });
-      prevTimeRef.current = t;
-    }
+    // Note: uTime updates removed - sketch effect is now static for realistic pencil look
 
     // Rotation slowdown during anticipation
     const rotationDamping =
@@ -540,6 +548,12 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
     groupRef.current.rotation.y = baseRotationY * rotationDamping;
     groupRef.current.rotation.x = baseRotationX * rotationDamping;
 
+    // Pre-calculate max distance once (constant)
+    const maxDistance = 1.7320508075688772; // Math.sqrt(3)
+
+    // Check if tremor calculations are needed (early bailout optimization)
+    const needsTremor = anticipationProgress > 0 && anticipationProgress < 1;
+
     // Update all 27 cubelets in one loop
     cubelets.forEach((cubelet, idx) => {
       const groupNode = cubeletGroupRefs.current[idx];
@@ -548,18 +562,9 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
       const state = cubeletStates.get(cubelet.key);
       if (!state) return;
 
-      // Calculate explosion properties
-      const distanceFromCenter = Math.sqrt(
-        state.currentLayer.x ** 2 + state.currentLayer.y ** 2 + state.currentLayer.z ** 2
-      );
-      const maxDistance = Math.sqrt(3);
-      const explosionDelay = 1 - distanceFromCenter / maxDistance;
-
-      const isCorner =
-        Math.abs(state.currentLayer.x) + Math.abs(state.currentLayer.y) + Math.abs(state.currentLayer.z) === 3;
-      const isEdge =
-        Math.abs(state.currentLayer.x) + Math.abs(state.currentLayer.y) + Math.abs(state.currentLayer.z) === 2;
-      const velocityMultiplier = isCorner ? 1.4 : isEdge ? 1.15 : 0.85;
+      // Use pre-calculated static values instead of computing per frame
+      const explosionDelay = 1 - cubelet.distanceFromCenter / maxDistance;
+      const velocityMultiplier = cubelet.velocityMultiplier;
 
       // Base position from world state (reuse vector)
       vecs.basePos.set(state.worldPosition.x, state.worldPosition.y, state.worldPosition.z);
@@ -661,12 +666,13 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
           : 0;
       const finalScale = compressionFactor + Math.abs(heartbeatPulse);
 
-      // Tremor/vibration effect during anticipation
+      // Tremor/vibration effect during anticipation (conditional calculation)
       let finalX = vecs.basePos.x;
       let finalY = vecs.basePos.y;
       let finalZ = vecs.basePos.z;
 
-      if (anticipationProgress > 0 && anticipationProgress < 1) {
+      // OPTIMIZATION: Skip tremor math entirely when not in anticipation phase
+      if (needsTremor) {
         const intensity = anticipationProgress * 0.015;
         const freq = 15 + anticipationProgress * 25;
         const tFreq = t * freq;
