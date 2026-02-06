@@ -7,7 +7,6 @@ import { extend } from "@react-three/fiber";
 // Custom Sketch Material with cross-hatching effect
 const SketchMaterialImpl = shaderMaterial(
   {
-    uTime: 0,
     uBaseColor: new THREE.Color(0xffffff),
     uLightDirection: new THREE.Vector3(1, 1, 1).normalize(),
     uHatchScale: 8.0,
@@ -43,7 +42,6 @@ const SketchMaterialImpl = shaderMaterial(
       precision mediump float;
     #endif
 
-    uniform float uTime;
     uniform vec3 uBaseColor;
     uniform vec3 uLightDirection;
     uniform float uHatchScale;

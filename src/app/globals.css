@@ -1,39 +1,74 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a1a;
-  --foreground: #ededed;
+  /* Base theme - Pencil Sketch Palette */
+  --background: #f5f0e6;
+  --background-dark: #e8e3d9;
+  --foreground: #2d2a26;
+  --foreground-muted: #5a5550;
+  --foreground-subtle: #7a756e;
+
+  /* Gradient colors */
+  --gradient-start: #f5f0e6;
+  --gradient-mid: #efe8dc;
+  --gradient-end: #e5dfd4;
+
+  /* Card styles */
+  --card-bg: rgba(45, 42, 38, 0.04);
+  --card-border: rgba(45, 42, 38, 0.12);
+  --card-hover-bg: rgba(45, 42, 38, 0.08);
+  --card-shadow: 0 4px 24px rgba(45, 42, 38, 0.08);
+  --card-shadow-hover: 0 8px 32px rgba(45, 42, 38, 0.12);
+
+  /* Glass effect */
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-blur: blur(12px);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-space-grotesk);
 }
 
 body {
-  background: var(--background);
+  background: linear-gradient(
+    180deg,
+    var(--gradient-start) 0%,
+    var(--gradient-mid) 50%,
+    var(--gradient-end) 100%
+  );
+  background-attachment: fixed;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
-/* Custom scrollbar for dark theme */
+/* Display font for headings */
+h1, h2, h3, .font-display {
+  font-family: var(--font-space-grotesk), system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Custom scrollbar for cream theme */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0a0a1a;
+  background: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2a2a4e;
+  background: rgba(45, 42, 38, 0.2);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a3a5e;
+  background: rgba(45, 42, 38, 0.35);
 }
 
 /* Smooth scroll behavior */
@@ -46,8 +81,264 @@ canvas {
   touch-action: none;
 }
 
-/* Selection styling */
+/* Selection styling - sepia theme */
 ::selection {
-  background: rgba(0, 255, 255, 0.3);
-  color: #fff;
+  background: rgba(45, 42, 38, 0.2);
+  color: var(--foreground);
 }
+
+/* Glassmorphism card utility */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+}
+
+/* Card hover state */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+/* ============================================
+   TEXT READABILITY IMPROVEMENTS
+   ============================================ */
+
+/* Content container with backdrop for text readability over 3D */
+.content-backdrop {
+  position: relative;
+  z-index: 20;
+  background: linear-gradient(
+    135deg,
+    rgba(245, 240, 230, 0.85) 0%,
+    rgba(245, 240, 230, 0.75) 100%
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 24px;
+  padding: 2rem;
+}
+
+/* Section text containers - ensure readability */
+.section-content {
+  position: relative;
+  z-index: 15;
+}
+
+/* Text shadow for contrast against 3D background */
+.text-readable {
+  text-shadow: 0 1px 2px rgba(245, 240, 230, 0.5);
+}
+
+/* ============================================
+   SECTION SPACING & VISUAL HIERARCHY
+   ============================================ */
+
+/* Section divider - subtle gradient line */
+.section-divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(45, 42, 38, 0.2) 20%,
+    rgba(45, 42, 38, 0.2) 80%,
+    transparent 100%
+  );
+  margin: 3rem 0;
+}
+
+/* Section container with proper vertical spacing */
+.section-spaced {
+  padding-top: 8rem;
+  padding-bottom: 8rem;
+}
+
+@media (min-width: 768px) {
+  .section-spaced {
+    padding-top: 10rem;
+    padding-bottom: 10rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section-spaced {
+    padding-top: 12rem;
+    padding-bottom: 12rem;
+  }
+}
+
+/* Section label styling (ABOUT ME, EXPERTISE, etc.) */
+.section-label {
+  font-size: 0.875rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--foreground-subtle);
+  font-weight: 500;
+}
+
+/* ============================================
+   MICRO-INTERACTIONS
+   ============================================ */
+
+/* Button hover effect with scale */
+.btn-interactive {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.btn-interactive:hover {
+  transform: scale(1.05);
+}
+
+.btn-interactive:active {
+  transform: scale(0.98);
+}
+
+/* Ripple effect on click */
+.btn-interactive::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.3) 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition: transform 0.4s, opacity 0.8s;
+}
+
+.btn-interactive:active::after {
+  transform: scale(0, 0);
+  opacity: 0.3;
+  transition: 0s;
+}
+
+/* Primary button style */
+.btn-primary {
+  background-color: var(--foreground);
+  color: var(--background);
+  padding: 0.875rem 2rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  box-shadow: 0 4px 14px rgba(45, 42, 38, 0.2);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(45, 42, 38, 0.3);
+}
+
+/* Secondary button style */
+.btn-secondary {
+  background-color: transparent;
+  color: var(--foreground);
+  padding: 0.875rem 2rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  border: 2px solid var(--foreground);
+}
+
+.btn-secondary:hover {
+  background-color: rgba(45, 42, 38, 0.05);
+}
+
+/* Link with animated underline */
+.link-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--foreground);
+  transition: width 0.3s ease;
+}
+
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* ============================================
+   NAVIGATION STYLES
+   ============================================ */
+
+.nav-glass {
+  background: rgba(245, 240, 230, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(45, 42, 38, 0.1);
+}
+
+.nav-link {
+  position: relative;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground-muted);
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: var(--foreground);
+}
+
+.nav-link.active {
+  color: var(--foreground);
+}
+
+.nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--foreground);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+/* Scroll indicator animation */
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+.scroll-indicator {
+  animation: bounce-subtle 2s ease-in-out infinite;
+}
+
+/* Shimmer effect for project cards */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+

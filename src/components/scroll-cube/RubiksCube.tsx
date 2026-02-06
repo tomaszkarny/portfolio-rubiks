@@ -1,41 +1,44 @@
 "use client";
 
-import { useRef, useMemo, useState, useEffect, useCallback } from "react";
+import React, { useRef, useMemo, useEffect, useCallback } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
   Group,
   Vector3,
   PlaneGeometry,
   ShaderMaterial,
+  BufferGeometry,
 } from "three";
-import { RoundedBox } from "@react-three/drei";
+import { RoundedBoxGeometry } from "three-stdlib";
 import { SketchMaterial } from "@/shaders/SketchMaterial";
+import type { AnimationRefs } from "./CubeBackground";
 
 interface RubiksCubeProps {
-  progress: number; // 0 = assembled cube, 1 = fully exploded
+  animationRefs: AnimationRefs;
   size?: number;
+  mousePosition?: { x: number; y: number };
 }
 
 // Animation phase constants - 6 layer rotations + dramatic explosion
 const QUIET_ZONE_END = 0.05;
-const ROTATION_1_END = 0.12; // Top layer (Y axis)
-const ROTATION_2_END = 0.19; // Right layer (X axis)
-const ROTATION_3_END = 0.26; // Front layer (Z axis)
-const ROTATION_4_END = 0.33; // Bottom layer (Y axis)
-const ROTATION_5_END = 0.40; // Left layer (X axis)
-const ROTATION_6_END = 0.47; // Back layer (Z axis)
+const ROTATION_1_END = 0.12;
+const ROTATION_2_END = 0.19;
+const ROTATION_3_END = 0.26;
+const ROTATION_4_END = 0.33;
+const ROTATION_5_END = 0.40;
+const ROTATION_6_END = 0.47;
 const ANTICIPATION_PAUSE = 0.55;
 const MINI_EXPLODE_END = 0.75;
 
 // Classic Rubik's cube face colors
 const RUBIKS_COLORS = {
-  front: "#009b48", // Green
-  back: "#0046ad", // Blue
-  left: "#ff5800", // Orange
-  right: "#b71234", // Red
-  top: "#ffffff", // White
-  bottom: "#ffd500", // Yellow
-  inner: "#1a1a1a", // Black (inner cube)
+  front: "#009b48",
+  back: "#0046ad",
+  left: "#ff5800",
+  right: "#b71234",
+  top: "#ffffff",
+  bottom: "#ffd500",
+  inner: "#1a1a1a",
 };
 
 // Phase definitions for 6 rotations
@@ -70,7 +73,6 @@ interface CubeletData {
   };
   originalLayer: { x: number; y: number; z: number };
   tremor: { x: number; y: number; z: number };
-  // Pre-calculated static values for performance
   distanceFromCenter: number;
   isCorner: boolean;
   isEdge: boolean;
@@ -166,96 +168,99 @@ function easeOutQuad(x: number): number {
   return 1 - (1 - x) * (1 - x);
 }
 
-// Face types for stickers
-type FaceType = "front" | "back" | "left" | "right" | "top" | "bottom";
-const FACE_TYPES: FaceType[] = ["front", "back", "left", "right", "top", "bottom"];
+// Seeded random number generator for deterministic tremor values
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed * 12.9898 + seed * 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+// Helper: get phase progress (inlined in useFrame for perf)
+function getPhaseProgress(progress: number, start: number, end: number): number {
+  if (progress < start) return 0;
+  if (progress > end) return 1;
+  return (progress - start) / (end - start);
+}
+
+// Helper: compute cubelet states for a given number of completed phases
+function computeCubeletStates(phasesComplete: number, cubeletSize: number): Map<string, CubeletState> {
+  const states = new Map<string, CubeletState>();
+
+  for (let x = -1; x <= 1; x++) {
+    for (let y = -1; y <= 1; y++) {
+      for (let z = -1; z <= 1; z++) {
+        const key = `${x}-${y}-${z}`;
+        states.set(key, {
+          currentLayer: { x, y, z },
+          cumulativeRotation: { x: 0, y: 0, z: 0 },
+          worldPosition: { x: x * cubeletSize, y: y * cubeletSize, z: z * cubeletSize },
+        });
+      }
+    }
+  }
+
+  for (let phaseIdx = 0; phaseIdx < phasesComplete; phaseIdx++) {
+    const phase = PHASES[phaseIdx];
+    states.forEach((state, key) => {
+      const layerCoord = state.currentLayer[phase.axis];
+      if (layerCoord === phase.layerValue) {
+        const newLayer = updateLayerAfterRotation(state.currentLayer, phase.axis, phase.angle);
+        const newWorldPos = updateWorldPositionAfterRotation(state.worldPosition, phase.axis, phase.angle);
+        const newRotation = { ...state.cumulativeRotation };
+        if (phase.axis === "x") newRotation.x += phase.angle;
+        else if (phase.axis === "y") newRotation.y += phase.angle;
+        else if (phase.axis === "z") newRotation.z += phase.angle;
+        states.set(key, { currentLayer: newLayer, cumulativeRotation: newRotation, worldPosition: newWorldPos });
+      }
+    });
+  }
+
+  return states;
+}
 
 // ============================================
-// OPTIMIZED CUBELET - uses shared materials
+// OPTIMIZED CUBELET - uses shared material
 // ============================================
 interface OptimizedCubeletProps {
   data: CubeletData;
-  cubeletSize: number;
-  radius: number;
-  innerMaterial: ShaderMaterial;
-  stickerMaterials: Record<FaceType, ShaderMaterial>;
+  boxGeometry: BufferGeometry;
+  material: ShaderMaterial;
   stickerGeometry: PlaneGeometry;
+  halfSize: number;
 }
 
-function OptimizedCubelet({
+const OptimizedCubelet = React.memo(function OptimizedCubelet({
   data,
-  cubeletSize,
-  radius,
-  innerMaterial,
-  stickerMaterials,
+  boxGeometry,
+  material,
   stickerGeometry,
+  halfSize,
 }: OptimizedCubeletProps) {
-  const halfSize = cubeletSize / 2 + 0.001;
-  const stickerSize = cubeletSize * 0.85;
-
   return (
     <group>
-      {/* Main cube body */}
-      <RoundedBox
-        args={[cubeletSize, cubeletSize, cubeletSize]}
-        radius={radius}
-        smoothness={2}
-        material={innerMaterial}
-      />
-
-      {/* Stickers - rendered as children of cubelet group */}
+      <mesh geometry={boxGeometry} material={material} />
       {data.colors.front && (
-        <mesh
-          position={[0, 0, halfSize]}
-          geometry={stickerGeometry}
-          material={stickerMaterials.front}
-        />
+        <mesh position={[0, 0, halfSize]} geometry={stickerGeometry} material={material} />
       )}
       {data.colors.back && (
-        <mesh
-          position={[0, 0, -halfSize]}
-          rotation={[0, Math.PI, 0]}
-          geometry={stickerGeometry}
-          material={stickerMaterials.back}
-        />
+        <mesh position={[0, 0, -halfSize]} rotation={[0, Math.PI, 0]} geometry={stickerGeometry} material={material} />
       )}
       {data.colors.left && (
-        <mesh
-          position={[-halfSize, 0, 0]}
-          rotation={[0, -Math.PI / 2, 0]}
-          geometry={stickerGeometry}
-          material={stickerMaterials.left}
-        />
+        <mesh position={[-halfSize, 0, 0]} rotation={[0, -Math.PI / 2, 0]} geometry={stickerGeometry} material={material} />
       )}
       {data.colors.right && (
-        <mesh
-          position={[halfSize, 0, 0]}
-          rotation={[0, Math.PI / 2, 0]}
-          geometry={stickerGeometry}
-          material={stickerMaterials.right}
-        />
+        <mesh position={[halfSize, 0, 0]} rotation={[0, Math.PI / 2, 0]} geometry={stickerGeometry} material={material} />
       )}
       {data.colors.top && (
-        <mesh
-          position={[0, halfSize, 0]}
-          rotation={[-Math.PI / 2, 0, 0]}
-          geometry={stickerGeometry}
-          material={stickerMaterials.top}
-        />
+        <mesh position={[0, halfSize, 0]} rotation={[-Math.PI / 2, 0, 0]} geometry={stickerGeometry} material={material} />
       )}
       {data.colors.bottom && (
-        <mesh
-          position={[0, -halfSize, 0]}
-          rotation={[Math.PI / 2, 0, 0]}
-          geometry={stickerGeometry}
-          material={stickerMaterials.bottom}
-        />
+        <mesh position={[0, -halfSize, 0]} rotation={[Math.PI / 2, 0, 0]} geometry={stickerGeometry} material={material} />
       )}
     </group>
   );
-}
+});
 
-export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
+export function RubiksCube({ animationRefs, size = 2.4, mousePosition = { x: 0, y: 0 } }: RubiksCubeProps) {
   const groupRef = useRef<Group>(null);
   const cubeletSize = size / 3;
   const gap = 0.06;
@@ -263,49 +268,44 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
   // Refs for all 27 cubelet groups
   const cubeletGroupRefs = useRef<(Group | null)[]>(new Array(27).fill(null));
 
-  // ==========================================
-  // OPTIMIZATION 1: Shared Sketch materials (7 total)
-  // ==========================================
-  const sharedMaterials = useMemo(() => {
-    // All materials use the same pencil sketch style (monochromatic)
-    const createSketchMaterial = () => {
-      const mat = new SketchMaterial();
-      // Cream paper, dark sepia ink - already set as defaults
-      return mat;
-    };
+  // Interactivity refs
+  const hoveredCubeletRef = useRef<number | null>(null);
+  const clickedCubeletRef = useRef<number | null>(null);
+  const clickAnimationRef = useRef<number>(0);
 
-    return {
-      inner: createSketchMaterial(),
-      front: createSketchMaterial(),
-      back: createSketchMaterial(),
-      left: createSketchMaterial(),
-      right: createSketchMaterial(),
-      top: createSketchMaterial(),
-      bottom: createSketchMaterial(),
-    };
-  }, []);
+  // Track last phasesComplete to recompute cubeletStates only when phase changes
+  const lastPhasesCompleteRef = useRef(0);
+  const cubeletStatesRef = useRef<Map<string, CubeletState>>(computeCubeletStates(0, cubeletSize));
+
+  // Single shared Sketch material (was 7 identical instances)
+  const sharedMaterial = useMemo(() => new SketchMaterial(), []);
+
+  const actualCubeletSize = cubeletSize - gap;
+  const radius = actualCubeletSize * 0.08;
+  const halfSize = actualCubeletSize / 2 + 0.001;
+
+  // Shared RoundedBox geometry (was 27 separate ExtrudeGeometry instances)
+  const sharedBoxGeometry = useMemo(() => {
+    const geo = new RoundedBoxGeometry(actualCubeletSize, actualCubeletSize, actualCubeletSize, 2, radius);
+    geo.computeVertexNormals();
+    return geo;
+  }, [actualCubeletSize, radius]);
 
   // Shared plane geometry for all stickers
   const stickerGeometry = useMemo(() => {
-    const stickerSize = (cubeletSize - gap) * 0.85;
+    const stickerSize = actualCubeletSize * 0.85;
     return new PlaneGeometry(stickerSize, stickerSize);
-  }, [cubeletSize, gap]);
+  }, [actualCubeletSize]);
 
-  // ==========================================
-  // OPTIMIZATION: Dispose materials/geometry on unmount
-  // ==========================================
   useEffect(() => {
     return () => {
-      // Dispose all shared sketch materials
-      Object.values(sharedMaterials).forEach((mat) => mat.dispose());
-      // Dispose shared geometry
+      sharedMaterial.dispose();
+      sharedBoxGeometry.dispose();
       stickerGeometry.dispose();
     };
-  }, [sharedMaterials, stickerGeometry]);
+  }, [sharedMaterial, sharedBoxGeometry, stickerGeometry]);
 
-  // ==========================================
-  // OPTIMIZATION 2: Reusable Vector3 objects
-  // ==========================================
+  // Reusable Vector3 objects
   const tempVectors = useRef({
     basePos: new Vector3(),
     anticipationOffset: new Vector3(),
@@ -313,22 +313,15 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
     explodeOffset: new Vector3(),
   });
 
-
-  // Track completed phases to update cubelet states
-  const [completedPhases, setCompletedPhases] = useState<number>(0);
-
-  // Generate all 27 cubelets with their positions and colors
-  // Pre-calculate static values that don't change during animation
+  // Generate all 27 cubelets (static data, never changes)
   const cubelets = useMemo(() => {
     const result: CubeletData[] = [];
     let index = 0;
-    const maxDistance = Math.sqrt(3); // Pre-calculate for normalization
 
     for (let x = -1; x <= 1; x++) {
       for (let y = -1; y <= 1; y++) {
         for (let z = -1; z <= 1; z++) {
           const colors: CubeletData["colors"] = {};
-
           if (z === 1) colors.front = RUBIKS_COLORS.front;
           if (z === -1) colors.back = RUBIKS_COLORS.back;
           if (x === -1) colors.left = RUBIKS_COLORS.left;
@@ -336,13 +329,13 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
           if (y === 1) colors.top = RUBIKS_COLORS.top;
           if (y === -1) colors.bottom = RUBIKS_COLORS.bottom;
 
-          // Pre-calculate static explosion properties
           const distanceFromCenter = Math.sqrt(x * x + y * y + z * z);
           const absSum = Math.abs(x) + Math.abs(y) + Math.abs(z);
           const isCorner = absSum === 3;
           const isEdge = absSum === 2;
           const velocityMultiplier = isCorner ? 1.4 : isEdge ? 1.15 : 0.85;
 
+          const seed = index * 3;
           result.push({
             key: `${x}-${y}-${z}`,
             index,
@@ -350,11 +343,10 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
             colors,
             originalLayer: { x, y, z },
             tremor: {
-              x: Math.random() * 2 - 1,
-              y: Math.random() * 2 - 1,
-              z: Math.random() * 2 - 1,
+              x: seededRandom(seed) * 2 - 1,
+              y: seededRandom(seed + 1) * 2 - 1,
+              z: seededRandom(seed + 2) * 2 - 1,
             },
-            // Store pre-calculated values
             distanceFromCenter,
             isCorner,
             isEdge,
@@ -364,42 +356,23 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
         }
       }
     }
-
     return result;
   }, [cubeletSize]);
 
-  // Initialize cubelet states
-  const [cubeletStates, setCubeletStates] = useState<Map<string, CubeletState>>(() => {
-    const states = new Map<string, CubeletState>();
-    for (let x = -1; x <= 1; x++) {
-      for (let y = -1; y <= 1; y++) {
-        for (let z = -1; z <= 1; z++) {
-          const key = `${x}-${y}-${z}`;
-          states.set(key, {
-            currentLayer: { x, y, z },
-            cumulativeRotation: { x: 0, y: 0, z: 0 },
-            worldPosition: { x: x * cubeletSize, y: y * cubeletSize, z: z * cubeletSize },
-          });
-        }
-      }
-    }
-    return states;
-  });
+  // ==========================================
+  // ALL animation logic moved into useFrame
+  // Reads progress from ref - ZERO React re-renders from scroll
+  // ==========================================
+  useFrame(({ clock }) => {
+    if (!groupRef.current) return;
 
-  const getPhaseProgress = useCallback(
-    (start: number, end: number) => {
-      if (progress < start) return 0;
-      if (progress > end) return 1;
-      return (progress - start) / (end - start);
-    },
-    [progress]
-  );
+    const progress = animationRefs.progress.current;
+    const t = clock.elapsedTime;
+    const vecs = tempVectors.current;
 
-  // Determine current phase index and how many phases are complete
-  const getCurrentPhaseInfo = useCallback(() => {
+    // Determine current phase info
     let activePhaseIndex = -1;
     let phasesComplete = 0;
-
     for (let i = 0; i < PHASES.length; i++) {
       const phase = PHASES[i];
       if (progress >= phase.end) {
@@ -410,169 +383,75 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
       }
     }
 
-    return { activePhaseIndex, phasesComplete };
-  }, [progress]);
-
-  const { activePhaseIndex, phasesComplete } = getCurrentPhaseInfo();
-
-  // Update cubelet states when phases complete
-  useEffect(() => {
-    if (phasesComplete > completedPhases) {
-      setCubeletStates((prevStates) => {
-        const newStates = new Map(prevStates);
-
-        for (let phaseIdx = completedPhases; phaseIdx < phasesComplete; phaseIdx++) {
-          const phase = PHASES[phaseIdx];
-
-          newStates.forEach((state, key) => {
-            const layerCoord = state.currentLayer[phase.axis];
-
-            if (layerCoord === phase.layerValue) {
-              const newLayer = updateLayerAfterRotation(state.currentLayer, phase.axis, phase.angle);
-              const newWorldPos = updateWorldPositionAfterRotation(state.worldPosition, phase.axis, phase.angle);
-
-              const newRotation = { ...state.cumulativeRotation };
-              if (phase.axis === "x") newRotation.x += phase.angle;
-              else if (phase.axis === "y") newRotation.y += phase.angle;
-              else if (phase.axis === "z") newRotation.z += phase.angle;
-
-              newStates.set(key, {
-                currentLayer: newLayer,
-                cumulativeRotation: newRotation,
-                worldPosition: newWorldPos,
-              });
-            }
-          });
-        }
-
-        return newStates;
-      });
-
-      setCompletedPhases(phasesComplete);
-    } else if (phasesComplete < completedPhases) {
-      // User scrolled back - reset states
-      setCubeletStates(() => {
-        const states = new Map<string, CubeletState>();
-        for (let x = -1; x <= 1; x++) {
-          for (let y = -1; y <= 1; y++) {
-            for (let z = -1; z <= 1; z++) {
-              const key = `${x}-${y}-${z}`;
-              states.set(key, {
-                currentLayer: { x, y, z },
-                cumulativeRotation: { x: 0, y: 0, z: 0 },
-                worldPosition: { x: x * cubeletSize, y: y * cubeletSize, z: z * cubeletSize },
-              });
-            }
-          }
-        }
-
-        // Re-apply completed phases
-        for (let phaseIdx = 0; phaseIdx < phasesComplete; phaseIdx++) {
-          const phase = PHASES[phaseIdx];
-
-          states.forEach((state, key) => {
-            const layerCoord = state.currentLayer[phase.axis];
-
-            if (layerCoord === phase.layerValue) {
-              const newLayer = updateLayerAfterRotation(state.currentLayer, phase.axis, phase.angle);
-              const newWorldPos = updateWorldPositionAfterRotation(state.worldPosition, phase.axis, phase.angle);
-
-              const newRotation = { ...state.cumulativeRotation };
-              if (phase.axis === "x") newRotation.x += phase.angle;
-              else if (phase.axis === "y") newRotation.y += phase.angle;
-              else if (phase.axis === "z") newRotation.z += phase.angle;
-
-              states.set(key, {
-                currentLayer: newLayer,
-                cumulativeRotation: newRotation,
-                worldPosition: newWorldPos,
-              });
-            }
-          });
-        }
-
-        return states;
-      });
-
-      setCompletedPhases(phasesComplete);
+    // Only recompute cubelet states when phasesComplete changes (max 6 times total)
+    if (phasesComplete !== lastPhasesCompleteRef.current) {
+      lastPhasesCompleteRef.current = phasesComplete;
+      cubeletStatesRef.current = computeCubeletStates(phasesComplete, cubeletSize);
     }
-  }, [phasesComplete, completedPhases, cubeletSize]);
 
-  // Calculate active rotation for current phase
-  let activeRotation: { axis: "x" | "y" | "z"; angle: number } | null = null;
-  let activePhase: RotationPhase | null = null;
+    const cubeletStates = cubeletStatesRef.current;
 
-  if (activePhaseIndex >= 0) {
-    activePhase = PHASES[activePhaseIndex];
-    const phaseProgress = getPhaseProgress(activePhase.start, activePhase.end);
-    const easedProgress = easeOutQuart(phaseProgress);
-    activeRotation = {
-      axis: activePhase.axis,
-      angle: easedProgress * activePhase.angle,
-    };
-  }
+    // Active rotation for current phase
+    let activeRotation: { axis: "x" | "y" | "z"; angle: number } | null = null;
+    let activePhase: RotationPhase | null = null;
 
-  // === ANTICIPATION PHASE ===
-  const anticipationProgress = getPhaseProgress(ROTATION_6_END, ANTICIPATION_PAUSE);
-  const compressionFactor = 1 - easeInOutQuad(anticipationProgress) * 0.08;
-  const emissiveIntensity = anticipationProgress * 0.3;
-  const gapExpansion = easeOutQuad(anticipationProgress) * 0.12;
+    if (activePhaseIndex >= 0) {
+      activePhase = PHASES[activePhaseIndex];
+      const phaseProgress = getPhaseProgress(progress, activePhase.start, activePhase.end);
+      const easedProgress = easeOutQuart(phaseProgress);
+      activeRotation = { axis: activePhase.axis, angle: easedProgress * activePhase.angle };
+    }
 
-  // === EXPLOSION PHASE ===
-  const miniExplodeProgress = easeOutBack(getPhaseProgress(ANTICIPATION_PAUSE, MINI_EXPLODE_END));
-  const fullExplodeProgress = easeOutExpo(getPhaseProgress(MINI_EXPLODE_END, 1.0));
-  const explodeProgress = miniExplodeProgress * 0.3 + fullExplodeProgress * 2.2;
-  const spiralAngle = explodeProgress * Math.PI * 1.5;
+    // Anticipation phase
+    const anticipationProgress = getPhaseProgress(progress, ROTATION_6_END, ANTICIPATION_PAUSE);
+    const compressionFactor = 1 - easeInOutQuad(anticipationProgress) * 0.08;
+    const gapExpansion = easeOutQuad(anticipationProgress) * 0.12;
 
-  // ==========================================
-  // OPTIMIZATION 3: Single central useFrame
-  // ==========================================
-  useFrame(({ clock }) => {
-    if (!groupRef.current) return;
+    // Explosion phase
+    const miniExplodeProgress = easeOutBack(getPhaseProgress(progress, ANTICIPATION_PAUSE, MINI_EXPLODE_END));
+    const fullExplodeProgress = easeOutExpo(getPhaseProgress(progress, MINI_EXPLODE_END, 1.0));
+    const explodeProgress = miniExplodeProgress * 0.3 + fullExplodeProgress * 2.2;
+    const spiralAngle = explodeProgress * Math.PI * 1.5;
 
-    const t = clock.elapsedTime;
-    const vecs = tempVectors.current;
-
-    // Note: uTime updates removed - sketch effect is now static for realistic pencil look
-
-    // Rotation slowdown during anticipation
+    // Rotation damping during anticipation
     const rotationDamping =
       anticipationProgress > 0 && anticipationProgress < 1
         ? 1 - easeOutQuad(anticipationProgress) * 0.9
         : 1;
 
-    // Dynamic overall cube rotation
-    const baseRotationY = Math.PI * 0.2 + progress * Math.PI * 0.4;
-    const baseRotationX = Math.PI * 0.15 + Math.sin(progress * Math.PI * 2) * 0.15;
+    // Idle breathing animation
+    const idleIntensity = Math.max(0, 1 - progress * 4);
+    const breatheX = Math.sin(t * 0.5) * 0.03 * idleIntensity;
+    const breatheY = Math.cos(t * 0.3) * 0.04 * idleIntensity;
+    const breatheZ = Math.sin(t * 0.4 + 0.5) * 0.02 * idleIntensity;
+    const floatY = Math.sin(t * 0.7) * 0.02 * idleIntensity;
+    const floatX = Math.cos(t * 0.5) * 0.015 * idleIntensity;
 
+    // Overall cube rotation
+    const baseRotationY = Math.PI * 0.2 + progress * Math.PI * 0.4 + floatY;
+    const baseRotationX = Math.PI * 0.15 + Math.sin(progress * Math.PI * 2) * 0.15 + floatX;
     groupRef.current.rotation.y = baseRotationY * rotationDamping;
     groupRef.current.rotation.x = baseRotationX * rotationDamping;
 
-    // Pre-calculate max distance once (constant)
     const maxDistance = 1.7320508075688772; // Math.sqrt(3)
-
-    // Check if tremor calculations are needed (early bailout optimization)
     const needsTremor = anticipationProgress > 0 && anticipationProgress < 1;
 
-    // Update all 27 cubelets in one loop
-    cubelets.forEach((cubelet, idx) => {
+    // Update all 27 cubelets
+    for (let idx = 0; idx < cubelets.length; idx++) {
+      const cubelet = cubelets[idx];
       const groupNode = cubeletGroupRefs.current[idx];
-      if (!groupNode) return;
+      if (!groupNode) continue;
 
       const state = cubeletStates.get(cubelet.key);
-      if (!state) return;
+      if (!state) continue;
 
-      // Use pre-calculated static values instead of computing per frame
       const explosionDelay = 1 - cubelet.distanceFromCenter / maxDistance;
       const velocityMultiplier = cubelet.velocityMultiplier;
 
-      // Base position from world state (reuse vector)
       vecs.basePos.set(state.worldPosition.x, state.worldPosition.y, state.worldPosition.z);
 
-      // Check if in active layer
       const isInActiveLayer = activePhase && state.currentLayer[activePhase.axis] === activePhase.layerValue;
 
-      // Apply active rotation transform
       let activeRotX = 0;
       let activeRotY = 0;
       let activeRotZ = 0;
@@ -602,31 +481,26 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
         }
       }
 
-      // Total rotation = cumulative + active
       const totalRotX = state.cumulativeRotation.x + activeRotX;
       const totalRotY = state.cumulativeRotation.y + activeRotY;
       const totalRotZ = state.cumulativeRotation.z + activeRotZ;
 
-      // Apply staggered explosion with delay
       const delayedExplodeProgress = Math.max(
         0,
         (explodeProgress - explosionDelay * 0.3) / (1 - explosionDelay * 0.3)
       );
 
-      // Enhanced tumbling during explosion
-      const tumbleSpeed = delayedExplodeProgress * Math.PI * 2;
-      const tumbleRotX =
-        totalRotX +
-        cubelet.originalLayer.z * tumbleSpeed * 0.8 +
-        cubelet.originalLayer.y * tumbleSpeed * 0.3;
-      const tumbleRotY =
-        totalRotY +
-        cubelet.originalLayer.x * tumbleSpeed * 0.6 +
-        cubelet.originalLayer.z * tumbleSpeed * 0.4;
-      const tumbleRotZ =
-        totalRotZ + (cubelet.originalLayer.x + cubelet.originalLayer.y) * tumbleSpeed * 0.5;
+      const tumbleSpeed = delayedExplodeProgress * Math.PI * 1.8;
+      const spiralTumbleOffset = cubelet.index * 0.15;
 
-      // Apply anticipation gap expansion (reuse vector)
+      const tumbleRotX = totalRotX + cubelet.originalLayer.z * tumbleSpeed * 0.7 +
+        Math.sin(spiralAngle + spiralTumbleOffset) * delayedExplodeProgress * 0.5;
+      const tumbleRotY = totalRotY + cubelet.originalLayer.x * tumbleSpeed * 0.5 +
+        Math.cos(spiralAngle + spiralTumbleOffset) * delayedExplodeProgress * 0.4;
+      const tumbleRotZ = totalRotZ +
+        (cubelet.originalLayer.x + cubelet.originalLayer.y) * tumbleSpeed * 0.4 +
+        delayedExplodeProgress * cubelet.distanceFromCenter * 0.3;
+
       vecs.anticipationOffset.set(
         state.currentLayer.x * gapExpansion,
         state.currentLayer.y * gapExpansion,
@@ -634,80 +508,142 @@ export function RubiksCube({ progress, size = 2.4 }: RubiksCubeProps) {
       );
       vecs.basePos.add(vecs.anticipationOffset);
 
-      // Spiral explosion path (reuse vector)
-      const spiralRadius = delayedExplodeProgress * 0.5;
+      // Spiral explosion
+      const layerAngle = Math.atan2(cubelet.originalLayer.z, cubelet.originalLayer.x);
+      const layerRadius = Math.sqrt(cubelet.originalLayer.x ** 2 + cubelet.originalLayer.z ** 2);
+      const spiralPhase = layerRadius * 0.3 + layerAngle * 0.15;
+      const spiralDelay = spiralPhase * 0.12;
+      const spiralizedProgress = Math.max(0, delayedExplodeProgress - spiralDelay) * 1.3;
+
+      const spiralRadius = spiralizedProgress * 0.8;
+      const spiralRotation = spiralAngle + cubelet.index * 0.4;
+
       vecs.spiralOffset.set(
-        Math.cos(spiralAngle + cubelet.originalLayer.x * Math.PI) *
-          spiralRadius *
-          Math.abs(cubelet.originalLayer.x),
-        0,
-        Math.sin(spiralAngle + cubelet.originalLayer.z * Math.PI) *
-          spiralRadius *
-          Math.abs(cubelet.originalLayer.z)
+        Math.cos(spiralRotation) * spiralRadius * Math.sign(cubelet.originalLayer.x || 0.1),
+        Math.sin(spiralizedProgress * Math.PI * 0.5) * spiralRadius * 0.3 * cubelet.originalLayer.y,
+        Math.sin(spiralRotation) * spiralRadius * Math.sign(cubelet.originalLayer.z || 0.1)
       );
 
-      // Calculate exploded position (reuse vector)
-      const explodeDistance = delayedExplodeProgress * 2.5 * velocityMultiplier;
+      const explodeDistance = spiralizedProgress * 2.2 * velocityMultiplier;
+      const orbitFactor = spiralizedProgress * 0.4;
+      const orbitX = Math.sin(spiralAngle * 2 + cubelet.index) * orbitFactor;
+      const orbitZ = Math.cos(spiralAngle * 2 + cubelet.index) * orbitFactor;
+
       vecs.explodeOffset.set(
-        state.currentLayer.x * explodeDistance +
-          state.currentLayer.x * state.currentLayer.z * delayedExplodeProgress * 0.3,
-        state.currentLayer.y * explodeDistance + state.currentLayer.y * delayedExplodeProgress * 0.2,
-        state.currentLayer.z * explodeDistance +
-          state.currentLayer.z * state.currentLayer.x * delayedExplodeProgress * 0.3
+        state.currentLayer.x * explodeDistance + orbitX,
+        state.currentLayer.y * explodeDistance * 0.9 + spiralizedProgress * 0.15,
+        state.currentLayer.z * explodeDistance + orbitZ
       );
 
       vecs.basePos.add(vecs.explodeOffset);
       vecs.basePos.add(vecs.spiralOffset);
 
-      // Heartbeat pulse effect during anticipation
-      const heartbeatPulse =
-        anticipationProgress > 0 && anticipationProgress < 1
-          ? Math.sin(anticipationProgress * Math.PI * 2.5) * 0.04
-          : 0;
+      const heartbeatPulse = anticipationProgress > 0 && anticipationProgress < 1
+        ? Math.sin(anticipationProgress * Math.PI * 2.5) * 0.04 : 0;
       const finalScale = compressionFactor + Math.abs(heartbeatPulse);
 
-      // Tremor/vibration effect during anticipation (conditional calculation)
       let finalX = vecs.basePos.x;
       let finalY = vecs.basePos.y;
       let finalZ = vecs.basePos.z;
 
-      // OPTIMIZATION: Skip tremor math entirely when not in anticipation phase
       if (needsTremor) {
         const intensity = anticipationProgress * 0.015;
         const freq = 15 + anticipationProgress * 25;
         const tFreq = t * freq;
-
         finalX += Math.sin(tFreq * cubelet.tremor.x) * intensity;
         finalY += Math.sin(tFreq * cubelet.tremor.y) * intensity;
         finalZ += Math.sin(tFreq * cubelet.tremor.z) * intensity;
       }
 
-      // Apply transforms to group
+      // Cursor attraction
+      const cursorInfluence = (1 - delayedExplodeProgress * 0.8) * cubelet.distanceFromCenter * 0.12;
+      const cubeletPhase = cubelet.index * 0.3;
+      const mouseInfluenceX = mousePosition.x * cursorInfluence;
+      const mouseInfluenceY = mousePosition.y * cursorInfluence;
+
+      finalX += mouseInfluenceX * (1 + Math.sin(t * 2 + cubeletPhase) * 0.1);
+      finalY += mouseInfluenceY * (1 + Math.cos(t * 2 + cubeletPhase) * 0.1);
+      finalZ += (mousePosition.x + mousePosition.y) * cursorInfluence * 0.15;
+
+      // Breathing animation
+      const cubeletBreathPhase = cubelet.index * 0.2;
+      finalX += breatheX * Math.sin(t * 0.8 + cubeletBreathPhase) * state.currentLayer.x;
+      finalY += breatheY * Math.cos(t * 0.6 + cubeletBreathPhase) * state.currentLayer.y;
+      finalZ += breatheZ * Math.sin(t * 0.7 + cubeletBreathPhase) * state.currentLayer.z;
+
+      // Hover/click effects
+      const isHovered = hoveredCubeletRef.current === idx;
+      const hoverScale = isHovered ? 1.12 : 1;
+
+      const isClicked = clickedCubeletRef.current === idx;
+      let clickRotation = 0;
+      let clickBounce = 1;
+
+      if (isClicked && clickAnimationRef.current < 1) {
+        clickAnimationRef.current += 0.04;
+        const animProgress = clickAnimationRef.current;
+        clickRotation = Math.sin(animProgress * Math.PI * 2) * 0.5;
+        clickBounce = 1 + Math.sin(animProgress * Math.PI) * 0.15;
+
+        if (clickAnimationRef.current >= 1) {
+          clickedCubeletRef.current = null;
+          clickAnimationRef.current = 0;
+        }
+      }
+
       groupNode.position.set(finalX, finalY, finalZ);
-      groupNode.rotation.set(tumbleRotX, tumbleRotY, tumbleRotZ);
-      groupNode.scale.setScalar(finalScale);
-    });
+      groupNode.rotation.set(
+        tumbleRotX + (isClicked ? clickRotation : 0),
+        tumbleRotY + (isClicked ? clickRotation * 0.5 : 0),
+        tumbleRotZ
+      );
+      groupNode.scale.setScalar(finalScale * hoverScale * clickBounce);
+    }
   });
 
-  const actualCubeletSize = (cubeletSize - gap) * compressionFactor;
-  const radius = actualCubeletSize * 0.08;
+  const handleCubeletClick = useCallback((e: { stopPropagation: () => void }, index: number) => {
+    e.stopPropagation();
+    clickedCubeletRef.current = index;
+    clickAnimationRef.current = 0;
+  }, []);
+
+  const handlePointerOver = useCallback((e: { stopPropagation: () => void }, index: number) => {
+    e.stopPropagation();
+    hoveredCubeletRef.current = index;
+    document.body.style.cursor = "pointer";
+  }, []);
+
+  const handlePointerOut = useCallback(() => {
+    hoveredCubeletRef.current = null;
+    document.body.style.cursor = "auto";
+  }, []);
+
+  // Pre-create event handler arrays to avoid inline closures defeating React.memo
+  const pointerOverHandlers = useMemo(
+    () => cubelets.map((_, idx) => (e: { stopPropagation: () => void }) => handlePointerOver(e, idx)),
+    [cubelets, handlePointerOver]
+  );
+  const clickHandlers = useMemo(
+    () => cubelets.map((_, idx) => (e: { stopPropagation: () => void }) => handleCubeletClick(e, idx)),
+    [cubelets, handleCubeletClick]
+  );
 
   return (
     <group ref={groupRef}>
       {cubelets.map((cubelet, idx) => (
         <group
           key={cubelet.key}
-          ref={(el) => {
-            cubeletGroupRefs.current[idx] = el;
-          }}
+          ref={(el) => { cubeletGroupRefs.current[idx] = el; }}
+          onPointerOver={pointerOverHandlers[idx]}
+          onPointerOut={handlePointerOut}
+          onClick={clickHandlers[idx]}
         >
           <OptimizedCubelet
             data={cubelet}
-            cubeletSize={(cubeletSize - gap)}
-            radius={radius}
-            innerMaterial={sharedMaterials.inner}
-            stickerMaterials={sharedMaterials}
+            boxGeometry={sharedBoxGeometry}
+            material={sharedMaterial}
             stickerGeometry={stickerGeometry}
+            halfSize={halfSize}
           />
         </group>
       ))}
