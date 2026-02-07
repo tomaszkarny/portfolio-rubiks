@@ -188,7 +188,7 @@ export function Navigation() {
                   transition={{ delay: index * 0.1 }}
                   className={`text-3xl font-medium ${
                     activeSection === link.href.replace("#", "")
-                      ? "text-[#2d2a26]"
+                      ? "text-[#b85c38]"
                       : "text-[#5a5550]"
                   }`}
                 >

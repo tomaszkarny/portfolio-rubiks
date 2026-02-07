@@ -89,7 +89,7 @@ export function ContactSection({
 
           <p
             className="text-lg md:text-xl mb-10"
-            style={{ color: "#5a5550" }}
+            style={{ color: "#4a4540" }}
           >
             Have a project in mind? I&apos;d love to hear about it. Drop me a line
             and let&apos;s create something amazing.
@@ -102,6 +102,7 @@ export function ContactSection({
             animate={isInView ? { opacity: 1, scale: 1 } : {}}
             transition={{ duration: 0.5, delay: 0.3 }}
             className="btn-primary btn-interactive inline-flex items-center gap-3 text-lg mb-12"
+            style={{ backgroundColor: "#b85c38", boxShadow: "0 4px 14px rgba(184, 92, 56, 0.25)" }}
           >
             <SocialIcon icon="email" />
             <span>{email}</span>
@@ -126,7 +127,13 @@ export function ContactSection({
                 initial={{ opacity: 0, y: 20 }}
                 animate={isInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.3, delay: 0.6 + index * 0.1 }}
-                className="p-4 rounded-full transition-all duration-200 hover:scale-110 hover:-translate-y-1"
+                className="p-4 rounded-full transition-all duration-200"
+                whileHover={{
+                  scale: 1.1,
+                  y: -4,
+                  backgroundColor: "rgba(184, 92, 56, 0.12)",
+                  boxShadow: "0 4px 20px rgba(184, 92, 56, 0.25)",
+                }}
                 style={{
                   backgroundColor: "rgba(45, 42, 38, 0.08)",
                   color: "#2d2a26",
@@ -145,7 +152,7 @@ export function ContactSection({
           animate={isInView ? { opacity: 1 } : {}}
           transition={{ duration: 0.5, delay: 0.9 }}
           className="mt-24 text-sm"
-          style={{ color: "#7a756e" }}
+          style={{ color: "#635d56" }}
         >
           Designed & Built with React, Three.js, and Framer Motion
         </motion.p>

@@ -9,12 +9,12 @@ interface AboutSectionProps {
 }
 
 export function AboutSection({
-  bio = "I'm a passionate developer who loves creating immersive digital experiences. With expertise in 3D graphics, interactive design, and modern web technologies, I bring ideas to life through code.",
+  bio = "I'm Tomasz — a developer who got hooked on making browsers do unexpected things. From GPU-powered 3D scenes to buttery scroll animations, I obsess over the details that make interfaces feel alive.",
   highlights = [
-    "5+ years of experience",
-    "Three.js & WebGL specialist",
-    "Full-stack development",
-    "Creative problem solver",
+    "Three.js & WebGL",
+    "React / Next.js",
+    "GLSL Shaders",
+    "Framer Motion",
   ],
 }: AboutSectionProps) {
   const ref = useRef(null);
@@ -47,7 +47,7 @@ export function AboutSection({
 
           <p
             className="text-lg md:text-xl leading-relaxed mb-10"
-            style={{ color: "#5a5550" }}
+            style={{ color: "#4a4540" }}
           >
             {bio}
           </p>
@@ -63,7 +63,7 @@ export function AboutSection({
               >
                 <span
                   className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: "#2d2a26" }}
+                  style={{ backgroundColor: "#b85c38" }}
                 />
                 <span className="font-medium" style={{ color: "#3d3a36" }}>
                   {highlight}
@@ -78,7 +78,7 @@ export function AboutSection({
             animate={isInView ? { opacity: 1, scaleX: 1 } : {}}
             transition={{ duration: 0.8, delay: 0.5 }}
             className="h-1 w-24 origin-left rounded-full"
-            style={{ backgroundColor: "#2d2a26" }}
+            style={{ backgroundColor: "#b85c38" }}
           />
         </motion.div>
       </div>

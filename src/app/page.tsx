@@ -25,17 +25,17 @@ export default function Home() {
         <HeroSection
           name="Tomasz Karny"
           title="Creative Developer"
-          subtitle="Crafting immersive 3D experiences where code meets artistry"
+          subtitle="I build things that move, glow, and respond to your every scroll"
         />
 
         {/* About: Cube on left, content on right */}
         <AboutSection
-          bio="I transform complex ideas into elegant, interactive experiences. With a deep passion for 3D graphics and creative coding, I push the boundaries of what's possible in the browser, creating digital experiences that captivate and inspire."
+          bio="I'm Tomasz — a developer who got hooked on making browsers do unexpected things. From GPU-powered 3D scenes to buttery scroll animations, I obsess over the details that make interfaces feel alive."
           highlights={[
-            "Three.js & WebGL specialist",
-            "Creative frontend development",
-            "Interactive 3D experiences",
-            "Performance optimization",
+            "Three.js & WebGL",
+            "React / Next.js",
+            "GLSL Shaders",
+            "Framer Motion",
           ]}
         />
 
@@ -45,35 +45,31 @@ export default function Home() {
             {
               title: "Scroll-Driven 3D Cube",
               description:
-                "An interactive Rubik's cube with custom pencil-sketch shaders, scroll-driven animations, and choreographed explosion effects. Built with Three.js and React Three Fiber.",
+                "A scroll-reactive Rubik's Cube built with Three.js and custom GLSL shaders. Every scroll tick drives the animation — no timeline, no keyframes, just math.",
               tags: ["Three.js", "GLSL", "React", "Framer Motion"],
               link: "#",
               featured: true,
-              gradient: "linear-gradient(135deg, #2d2a26 0%, #5a5550 100%)",
             },
             {
               title: "WebGL Particle System",
               description:
-                "High-performance particle system with custom shaders, supporting 100k+ particles at 60fps with physics-based movement.",
-              tags: ["WebGL", "GLSL", "React Three Fiber"],
+                "GPU-accelerated particle system with 50k+ particles responding to audio input and mouse movement in real-time.",
+              tags: ["WebGL", "GLSL", "Web Audio API"],
               link: "#",
-              gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
             },
             {
               title: "3D Product Configurator",
               description:
-                "Real-time product visualization tool with dynamic lighting, material swapping, and camera controls.",
-              tags: ["Three.js", "Next.js", "TypeScript"],
+                "Interactive product viewer with real-time material swapping, environment reflections, and camera orbit controls.",
+              tags: ["Three.js", "React Three Fiber", "Zustand"],
               link: "#",
-              gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
             },
             {
-              title: "Interactive Data Visualization",
+              title: "Interactive Data Viz",
               description:
-                "3D data visualization dashboard with animated transitions and responsive layouts.",
-              tags: ["D3.js", "Three.js", "WebSocket"],
+                "Real-time data visualization dashboard with animated chart transitions and WebSocket-driven live updates.",
+              tags: ["D3.js", "TypeScript", "WebSocket"],
               link: "#",
-              gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
             },
           ]}
         />

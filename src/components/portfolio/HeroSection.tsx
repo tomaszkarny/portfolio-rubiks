@@ -87,7 +87,7 @@ function AnimatedName({ text, mounted }: { text: string; mounted: boolean }) {
 export function HeroSection({
   name = "Tomasz Karny",
   title = "Creative Developer",
-  subtitle = "Crafting immersive 3D experiences where code meets artistry",
+  subtitle = "I build things that move, glow, and respond to your every scroll",
 }: HeroSectionProps) {
   const mounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
@@ -105,25 +105,6 @@ export function HeroSection({
         />
 
         <div className="relative">
-          {/* Welcome badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={mounted ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="inline-flex items-center gap-2 mb-6"
-          >
-            <span
-              className="px-4 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm"
-              style={{
-                backgroundColor: "rgba(45, 42, 38, 0.08)",
-                color: "#5a5550",
-                border: "1px solid rgba(45, 42, 38, 0.1)",
-              }}
-            >
-              Creative Developer
-            </span>
-          </motion.div>
-
           {/* Main name - large, animated letter by letter */}
           <h1
             className="text-6xl md:text-8xl lg:text-9xl font-bold mb-6 tracking-tighter leading-none"
@@ -157,7 +138,7 @@ export function HeroSection({
             animate={mounted ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ duration: 0.6, delay: 1.2 }}
             className="text-lg md:text-xl mb-12 max-w-2xl mx-auto"
-            style={{ color: "#5a5550" }}
+            style={{ color: "#4a4540" }}
           >
             {subtitle}
           </motion.p>
@@ -172,6 +153,7 @@ export function HeroSection({
             <a
               href="#work"
               className="btn-primary btn-interactive inline-flex items-center gap-3 text-base md:text-lg"
+              style={{ backgroundColor: "#b85c38", boxShadow: "0 4px 14px rgba(184, 92, 56, 0.25)" }}
             >
               <span>Explore Work</span>
               <motion.svg

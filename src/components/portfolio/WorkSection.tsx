@@ -9,7 +9,6 @@ interface Project {
   tags: string[];
   link?: string;
   featured?: boolean;
-  gradient?: string; // Gradient for placeholder image
 }
 
 interface WorkSectionProps {
@@ -19,37 +18,33 @@ interface WorkSectionProps {
 // Default projects with one featured
 const defaultProjects: Project[] = [
   {
-    title: "Interactive 3D Experience",
+    title: "Scroll-Driven 3D Cube",
     description:
-      "A WebGL-powered visualization that responds to user input with fluid animations and real-time physics simulation.",
+      "A scroll-reactive Rubik's Cube built with Three.js and custom GLSL shaders. Every scroll tick drives the animation — no timeline, no keyframes, just math.",
     tags: ["Three.js", "React", "GLSL"],
     link: "#",
     featured: true,
-    gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
   },
   {
-    title: "E-commerce Platform",
+    title: "WebGL Particle System",
     description:
-      "Full-stack application with real-time inventory and seamless checkout flow.",
-    tags: ["Next.js", "Node.js", "PostgreSQL"],
+      "GPU-accelerated particle system with 50k+ particles responding to audio input and mouse movement in real-time.",
+    tags: ["WebGL", "GLSL", "Web Audio API"],
     link: "#",
-    gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
   },
   {
-    title: "Data Dashboard",
+    title: "3D Product Configurator",
     description:
-      "Real-time analytics dashboard with interactive charts and live data streams.",
-    tags: ["TypeScript", "D3.js", "WebSocket"],
+      "Interactive product viewer with real-time material swapping, environment reflections, and camera orbit controls.",
+    tags: ["Three.js", "React Three Fiber", "Zustand"],
     link: "#",
-    gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
   },
   {
-    title: "Mobile App Design",
+    title: "Interactive Data Viz",
     description:
-      "Cross-platform mobile application with gesture-based navigation.",
-    tags: ["React Native", "Reanimated", "Figma"],
+      "Real-time data visualization dashboard with animated chart transitions and WebSocket-driven live updates.",
+    tags: ["D3.js", "TypeScript", "WebSocket"],
     link: "#",
-    gradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
   },
 ];
 
@@ -58,90 +53,162 @@ const sepiaColors = {
   border: "rgba(45, 42, 38, 0.15)",
   glow: "0 4px 24px rgba(45, 42, 38, 0.08)",
   hoverGlow: "0 8px 32px rgba(45, 42, 38, 0.15)",
-  number: "#7a756e",
+  number: "#635d56",
   gradient: "linear-gradient(135deg, rgba(45, 42, 38, 0.04) 0%, rgba(45, 42, 38, 0.01) 100%)",
   tagBg: "rgba(45, 42, 38, 0.1)",
-  tagText: "#5a5550",
+  tagText: "#4a4540",
   tagBorder: "rgba(45, 42, 38, 0.15)",
 };
 
-function ProjectImagePlaceholder({ gradient, featured, title }: { gradient?: string; featured?: boolean; title?: string }) {
-  // Generate dynamic pattern based on project title for visual variety
-  const patternSeed = title ? title.length * 7 : 42;
+function ProjectThumbnail({ index, featured }: { index: number; featured?: boolean }) {
+  const thumbnails = [
+    // Project 01: Wireframe cube with floating lines
+    (
+      <div key="cube" className="relative w-full h-full flex items-center justify-center">
+        <div
+          className="w-20 h-20 border-2 relative"
+          style={{
+            borderColor: "#b85c38",
+            transform: "rotateX(15deg) rotateY(-20deg)",
+            transformStyle: "preserve-3d",
+          }}
+        >
+          <div
+            className="absolute inset-0 border-2"
+            style={{
+              borderColor: "rgba(184, 92, 56, 0.4)",
+              transform: "translateZ(40px)",
+            }}
+          />
+          <div
+            className="absolute top-0 left-0 w-full h-0 border-t-2"
+            style={{
+              borderColor: "rgba(184, 92, 56, 0.3)",
+              transform: "rotateX(-90deg) translateZ(0px)",
+              transformOrigin: "top",
+              height: "40px",
+            }}
+          />
+        </div>
+        {/* Floating accent lines */}
+        {[...Array(5)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              width: `${30 + i * 15}px`,
+              height: "1px",
+              backgroundColor: `rgba(184, 92, 56, ${0.15 + i * 0.05})`,
+              top: `${20 + i * 16}%`,
+              left: `${10 + i * 12}%`,
+              transform: `rotate(${-15 + i * 8}deg)`,
+            }}
+          />
+        ))}
+      </div>
+    ),
+    // Project 02: Particle dots
+    (
+      <div key="particles" className="relative w-full h-full overflow-hidden">
+        {[...Array(40)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              width: `${2 + (i % 4)}px`,
+              height: `${2 + (i % 4)}px`,
+              backgroundColor: i % 5 === 0 ? "#b85c38" : "rgba(184, 92, 56, 0.3)",
+              top: `${(i * 17 + i * i * 3) % 90 + 5}%`,
+              left: `${(i * 23 + i * i * 7) % 90 + 5}%`,
+              boxShadow: i % 5 === 0 ? "0 0 6px rgba(184, 92, 56, 0.4)" : "none",
+            }}
+          />
+        ))}
+      </div>
+    ),
+    // Project 03: 3D product box outline
+    (
+      <div key="product" className="relative w-full h-full flex items-center justify-center" style={{ perspective: "400px" }}>
+        <div
+          className="w-24 h-28 border-2 relative"
+          style={{
+            borderColor: "rgba(184, 92, 56, 0.6)",
+            transform: "rotateY(-25deg) rotateX(5deg)",
+            transformStyle: "preserve-3d",
+          }}
+        >
+          {/* Side face */}
+          <div
+            className="absolute top-0 right-0 h-full border-r-2"
+            style={{
+              width: "30px",
+              borderColor: "rgba(184, 92, 56, 0.3)",
+              transform: "rotateY(90deg) translateZ(0px)",
+              transformOrigin: "right",
+              background: "linear-gradient(180deg, rgba(184,92,56,0.08) 0%, transparent 100%)",
+            }}
+          />
+          {/* Top face */}
+          <div
+            className="absolute top-0 left-0 w-full border-t-2"
+            style={{
+              height: "20px",
+              borderColor: "rgba(184, 92, 56, 0.3)",
+              transform: "rotateX(-90deg)",
+              transformOrigin: "top",
+              background: "linear-gradient(90deg, rgba(184,92,56,0.06) 0%, transparent 100%)",
+            }}
+          />
+          {/* Inner detail lines */}
+          <div className="absolute inset-4 border border-dashed" style={{ borderColor: "rgba(184, 92, 56, 0.2)" }} />
+        </div>
+      </div>
+    ),
+    // Project 04: Data viz bars
+    (
+      <div key="dataviz" className="relative w-full h-full flex items-end justify-center gap-2 pb-8 px-8">
+        {[65, 40, 85, 55, 70, 45, 90, 60].map((h, i) => (
+          <div
+            key={i}
+            className="flex-1 rounded-t-sm"
+            style={{
+              height: `${h}%`,
+              backgroundColor: i % 3 === 0 ? "rgba(184, 92, 56, 0.7)" : "rgba(184, 92, 56, 0.25)",
+              maxWidth: "20px",
+            }}
+          />
+        ))}
+        {/* Grid lines */}
+        {[25, 50, 75].map((top) => (
+          <div
+            key={top}
+            className="absolute left-6 right-6"
+            style={{
+              top: `${top}%`,
+              height: "1px",
+              backgroundColor: "rgba(184, 92, 56, 0.1)",
+            }}
+          />
+        ))}
+      </div>
+    ),
+  ];
 
   return (
     <div
-      className={`w-full rounded-xl mb-6 relative overflow-hidden group-hover:scale-[1.02] transition-all duration-500 ${
+      className={`w-full rounded-xl mb-6 relative overflow-hidden transition-transform duration-500 group-hover:scale-[1.03] ${
         featured ? "h-64 md:h-80" : "h-48 md:h-56"
       }`}
-      style={{
-        background: gradient || "linear-gradient(135deg, rgba(45, 42, 38, 0.08) 0%, rgba(45, 42, 38, 0.04) 100%)",
-      }}
+      style={{ backgroundColor: "#1a1816" }}
     >
-      {/* Dynamic geometric pattern overlay */}
-      <div
-        className="absolute inset-0 opacity-20"
-        style={{
-          backgroundImage: `
-            repeating-linear-gradient(
-              ${45 + (patternSeed % 30)}deg,
-              transparent,
-              transparent ${8 + (patternSeed % 6)}px,
-              rgba(255, 255, 255, 0.15) ${8 + (patternSeed % 6)}px,
-              rgba(255, 255, 255, 0.15) ${16 + (patternSeed % 8)}px
-            ),
-            repeating-linear-gradient(
-              ${-45 + (patternSeed % 20)}deg,
-              transparent,
-              transparent 12px,
-              rgba(255, 255, 255, 0.08) 12px,
-              rgba(255, 255, 255, 0.08) 24px
-            )
-          `,
-        }}
-      />
-
-      {/* Subtle noise texture */}
-      <div
-        className="absolute inset-0 opacity-30 mix-blend-overlay"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        }}
-      />
-
-      {/* Animated gradient shimmer on hover */}
-      <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-700"
-        style={{
-          background: "linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.3) 50%, transparent 75%)",
-          backgroundSize: "200% 100%",
-          animation: "shimmer 1.5s ease-in-out",
-        }}
-      />
-
-      {/* Code/Tech icon for visual interest */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative">
-          <svg
-            className="w-16 h-16 text-white/25 group-hover:text-white/40 transition-colors duration-300"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1}
-              d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-            />
-          </svg>
-        </div>
-      </div>
-
+      {thumbnails[index] || thumbnails[0]}
       {/* Featured badge */}
       {featured && (
         <div className="absolute top-4 right-4">
-          <span className="px-3 py-1 text-xs font-semibold rounded-full bg-white/20 text-white backdrop-blur-sm">
+          <span
+            className="px-3 py-1 text-xs font-semibold rounded-full backdrop-blur-sm"
+            style={{ backgroundColor: "rgba(184, 92, 56, 0.9)", color: "#fff" }}
+          >
             Featured
           </span>
         </div>
@@ -178,8 +245,8 @@ function ProjectCard({
           boxShadow: sepiaColors.glow,
         }}
         whileHover={{
-          scale: 1.02,
-          boxShadow: sepiaColors.hoverGlow,
+          y: -4,
+          boxShadow: "0 12px 40px rgba(45, 42, 38, 0.18)",
         }}
       >
         {/* Subtle corner accent */}
@@ -190,8 +257,8 @@ function ProjectCard({
           }}
         />
 
-        {/* Project image placeholder */}
-        <ProjectImagePlaceholder gradient={project.gradient} featured={isFeatured} title={project.title} />
+        {/* Project thumbnail */}
+        <ProjectThumbnail index={index} featured={isFeatured} />
 
         {/* Project number */}
         <span
@@ -210,7 +277,7 @@ function ProjectCard({
 
         <p
           className={`text-base md:text-lg mb-6 relative z-10 ${isFeatured ? "max-w-2xl" : ""}`}
-          style={{ color: "#5a5550" }}
+          style={{ color: "#4a4540" }}
         >
           {project.description}
         </p>
@@ -238,7 +305,7 @@ function ProjectCard({
             className="flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all relative z-10"
             style={{ color: "#2d2a26" }}
           >
-            <span className="link-underline transition-colors group-hover:text-[#5a5550]">
+            <span className="link-underline transition-colors group-hover:text-[#b85c38]">
               View Project
             </span>
             <svg
@@ -292,7 +359,7 @@ export function WorkSection({ projects = defaultProjects }: WorkSectionProps) {
 
           <p
             className="text-lg md:text-xl max-w-xl"
-            style={{ color: "#5a5550" }}
+            style={{ color: "#4a4540" }}
           >
             A collection of projects that showcase my expertise in creating
             engaging digital experiences.

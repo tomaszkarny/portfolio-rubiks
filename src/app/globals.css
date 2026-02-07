@@ -5,8 +5,14 @@
   --background: #f5f0e6;
   --background-dark: #e8e3d9;
   --foreground: #2d2a26;
-  --foreground-muted: #5a5550;
-  --foreground-subtle: #7a756e;
+  --foreground-muted: #4a4540;
+  --foreground-subtle: #635d56;
+
+  /* Accent colors */
+  --accent: #b85c38;
+  --accent-hover: #a04e30;
+  --accent-light: rgba(184, 92, 56, 0.12);
+  --accent-glow: rgba(184, 92, 56, 0.25);
 
   /* Gradient colors */
   --gradient-start: #f5f0e6;
@@ -179,7 +185,7 @@ canvas {
   font-size: 0.875rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--foreground-subtle);
+  color: var(--accent);
   font-weight: 500;
 }
 
@@ -227,16 +233,16 @@ canvas {
 
 /* Primary button style */
 .btn-primary {
-  background-color: var(--foreground);
+  background-color: var(--accent);
   color: var(--background);
   padding: 0.875rem 2rem;
   border-radius: 9999px;
   font-weight: 500;
-  box-shadow: 0 4px 14px rgba(45, 42, 38, 0.2);
+  box-shadow: 0 4px 14px var(--accent-glow);
 }
 
 .btn-primary:hover {
-  box-shadow: 0 6px 20px rgba(45, 42, 38, 0.3);
+  box-shadow: 0 6px 20px rgba(184, 92, 56, 0.4);
 }
 
 /* Secondary button style */
@@ -266,7 +272,7 @@ canvas {
   left: 0;
   width: 0;
   height: 2px;
-  background-color: var(--foreground);
+  background-color: var(--accent);
   transition: width 0.3s ease;
 }
 
@@ -311,7 +317,7 @@ canvas {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background-color: var(--foreground);
+  background-color: var(--accent);
 }
 
 /* ============================================

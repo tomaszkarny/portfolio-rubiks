@@ -46,6 +46,7 @@ function SkillCategoryCard({
       initial={{ opacity: 0, y: 30 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.5, delay: 0.1 + index * 0.1 }}
+      whileHover={{ borderColor: "rgba(184, 92, 56, 0.5)" }}
       className="p-6 rounded-xl hover-lift"
       style={{
         backgroundColor: "rgba(45, 42, 38, 0.03)",
@@ -88,7 +89,7 @@ export function SkillsSection({ categories = defaultCategories }: SkillsSectionP
     <section
       id="skills"
       ref={ref}
-      className="min-h-[150vh] flex items-center px-6 md:px-12 lg:px-20 py-32"
+      className="min-h-[120vh] flex items-center px-6 md:px-12 lg:px-20 py-32"
     >
       {/* Content on right side (cube is on left in this section) */}
       <div className="max-w-2xl ml-auto relative z-20">
@@ -111,7 +112,7 @@ export function SkillsSection({ categories = defaultCategories }: SkillsSectionP
 
           <p
             className="text-lg md:text-xl"
-            style={{ color: "#5a5550" }}
+            style={{ color: "#4a4540" }}
           >
             Technologies and frameworks I use to bring ideas to life.
           </p>
