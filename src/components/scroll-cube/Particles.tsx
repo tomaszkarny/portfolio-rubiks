@@ -1,15 +1,16 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
   InstancedMesh,
-  Object3D,
+  Matrix4,
   SphereGeometry,
   MeshBasicMaterial,
   Color,
   AdditiveBlending,
 } from "three";
+import { seededRandom, curlNoise } from "@/utils/noise";
 import type { AnimationRefs } from "./CubeBackground";
 
 interface ParticlesProps {
@@ -25,18 +26,14 @@ function useIsMobile(): boolean {
 }
 
 const PARTICLE_CONFIG = {
-  baseSize: 0.015,
-  sizeVariation: 0.01,
-  spread: 12,
-  baseOpacity: 0.15,
-  driftSpeed: 0.02,
+  baseSize: 0.018,
+  sizeVariation: 0.012,
+  spread: 11,
+  baseOpacity: 0.18,
   scrollReactivity: 0.5,
+  curlScale: 0.15,
+  curlStrength: 0.4,
 };
-
-function seededRandom(seed: number): number {
-  const x = Math.sin(seed * 12.9898 + seed * 78.233) * 43758.5453;
-  return x - Math.floor(x);
-}
 
 export function Particles({
   count: propCount,
@@ -44,11 +41,11 @@ export function Particles({
   isMobile: propIsMobile,
 }: ParticlesProps) {
   const meshRef = useRef<InstancedMesh>(null);
-  const tempObject = useMemo(() => new Object3D(), []);
+  const tempMatrix = useMemo(() => new Matrix4(), []);
 
   const detectedMobile = useIsMobile();
   const isMobile = propIsMobile ?? detectedMobile;
-  const count = propCount ?? (isMobile ? 250 : 500);
+  const count = propCount ?? (isMobile ? 180 : 300);
 
   const particleData = useMemo(() => {
     const data = [];
@@ -58,9 +55,6 @@ export function Particles({
         x: (seededRandom(seed) - 0.5) * PARTICLE_CONFIG.spread,
         y: (seededRandom(seed + 1) - 0.5) * PARTICLE_CONFIG.spread,
         z: (seededRandom(seed + 2) - 0.5) * PARTICLE_CONFIG.spread * 0.5 - 2,
-        vx: (seededRandom(seed + 3) - 0.5) * PARTICLE_CONFIG.driftSpeed,
-        vy: (seededRandom(seed + 4) - 0.5) * PARTICLE_CONFIG.driftSpeed,
-        vz: (seededRandom(seed + 5) - 0.5) * PARTICLE_CONFIG.driftSpeed * 0.5,
         scale: PARTICLE_CONFIG.baseSize + seededRandom(seed + 6) * PARTICLE_CONFIG.sizeVariation,
         phase: seededRandom(seed + 7) * Math.PI * 2,
         speed: 0.5 + seededRandom(seed + 8) * 0.5,
@@ -82,37 +76,52 @@ export function Particles({
     });
   }, []);
 
+  useEffect(() => {
+    return () => {
+      geometry.dispose();
+      material.dispose();
+    };
+  }, [geometry, material]);
+
   useFrame(({ clock }) => {
     if (!meshRef.current) return;
 
     const time = clock.elapsedTime;
-    // Read velocity from ref instead of prop
     const scrollVelocity = animationRefs.scrollVelocity.current;
     const velocityBoost = Math.abs(scrollVelocity) * PARTICLE_CONFIG.scrollReactivity;
     const wrapBound = PARTICLE_CONFIG.spread * 0.6;
+    const curlScale = PARTICLE_CONFIG.curlScale;
+    const curlStrength = PARTICLE_CONFIG.curlStrength;
 
     for (let i = 0; i < particleData.length; i++) {
       const particle = particleData[i];
-      const driftX = Math.sin(time * particle.speed + particle.phase) * 0.3;
-      const driftY = Math.cos(time * particle.speed * 0.7 + particle.phase) * 0.3;
-      const driftZ = Math.sin(time * particle.speed * 0.5 + particle.phase * 2) * 0.2;
+
+      // Curl noise flow field - coherent stream patterns
+      const sampleX = (particle.x + time * 0.05) * curlScale;
+      const sampleY = (particle.y + time * 0.03) * curlScale;
+      const [cx, cy] = curlNoise(sampleX, sampleY, 2);
+
+      const driftX = cx * curlStrength + Math.sin(time * particle.speed * 0.3 + particle.phase) * 0.15;
+      const driftY = cy * curlStrength + Math.cos(time * particle.speed * 0.2 + particle.phase) * 0.15;
+      const driftZ = Math.sin(time * particle.speed * 0.15 + particle.phase * 2) * 0.12;
 
       const turbulence = velocityBoost * (1 + Math.sin(time * 10 + particle.phase) * 0.5);
 
-      const x = particle.x + driftX + particle.vx * time + turbulence * particle.randomOffsetX * 0.1;
-      const y = particle.y + driftY + particle.vy * time + turbulence * particle.randomOffsetY * 0.1;
-      const z = particle.z + driftZ + particle.vz * time;
+      const x = particle.x + driftX + turbulence * particle.randomOffsetX * 0.15;
+      const y = particle.y + driftY + turbulence * particle.randomOffsetY * 0.15;
+      const z = particle.z + driftZ;
 
       const wrappedX = ((x + wrapBound) % (wrapBound * 2)) - wrapBound;
       const wrappedY = ((y + wrapBound) % (wrapBound * 2)) - wrapBound;
 
       const scaleMultiplier = 1 + velocityBoost * 0.5 + Math.sin(time * 2 + particle.phase) * 0.1;
 
-      tempObject.position.set(wrappedX, wrappedY, z);
-      tempObject.scale.setScalar(particle.scale * scaleMultiplier);
-      tempObject.updateMatrix();
+      // Direct matrix composition — no quaternion overhead (particles have no rotation)
+      const s = particle.scale * scaleMultiplier;
+      tempMatrix.makeScale(s, s, s);
+      tempMatrix.setPosition(wrappedX, wrappedY, z);
 
-      meshRef.current!.setMatrixAt(i, tempObject.matrix);
+      meshRef.current!.setMatrixAt(i, tempMatrix);
     }
 
     meshRef.current.instanceMatrix.needsUpdate = true;

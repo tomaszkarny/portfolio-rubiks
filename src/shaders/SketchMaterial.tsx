@@ -2,12 +2,10 @@
 
 import * as THREE from "three";
 import { shaderMaterial } from "@react-three/drei";
-import { extend } from "@react-three/fiber";
 
 // Custom Sketch Material with cross-hatching effect
 const SketchMaterialImpl = shaderMaterial(
   {
-    uBaseColor: new THREE.Color(0xffffff),
     uLightDirection: new THREE.Vector3(1, 1, 1).normalize(),
     uHatchScale: 8.0,
     uWobbleIntensity: 2.0,
@@ -17,15 +15,10 @@ const SketchMaterialImpl = shaderMaterial(
   // Vertex Shader
   `
     varying vec3 vNormal;
-    varying vec3 vWorldPosition;
-    varying vec2 vUv;
     varying vec3 vViewPosition;
 
     void main() {
       vNormal = normalize(normalMatrix * normal);
-      vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-      vWorldPosition = worldPosition.xyz;
-      vUv = uv;
 
       vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
       vViewPosition = -mvPosition.xyz;
@@ -42,7 +35,6 @@ const SketchMaterialImpl = shaderMaterial(
       precision mediump float;
     #endif
 
-    uniform vec3 uBaseColor;
     uniform vec3 uLightDirection;
     uniform float uHatchScale;
     uniform float uWobbleIntensity;
@@ -50,8 +42,6 @@ const SketchMaterialImpl = shaderMaterial(
     uniform vec3 uInkColor;
 
     varying vec3 vNormal;
-    varying vec3 vWorldPosition;
-    varying vec2 vUv;
     varying vec3 vViewPosition;
 
     // Optimized pseudo-random noise
@@ -181,33 +171,5 @@ const SketchMaterialImpl = shaderMaterial(
   `
 );
 
-// Extend Three.js with our custom material
-extend({ SketchMaterial: SketchMaterialImpl });
-
 // Export the material class for direct instantiation
 export { SketchMaterialImpl as SketchMaterial };
-
-// Helper to create a configured sketch material instance
-export function createSketchMaterial(options?: {
-  paperColor?: THREE.ColorRepresentation;
-  inkColor?: THREE.ColorRepresentation;
-  hatchScale?: number;
-  wobbleIntensity?: number;
-}) {
-  const material = new SketchMaterialImpl();
-
-  if (options?.paperColor) {
-    material.uniforms.uPaperColor.value = new THREE.Color(options.paperColor);
-  }
-  if (options?.inkColor) {
-    material.uniforms.uInkColor.value = new THREE.Color(options.inkColor);
-  }
-  if (options?.hatchScale !== undefined) {
-    material.uniforms.uHatchScale.value = options.hatchScale;
-  }
-  if (options?.wobbleIntensity !== undefined) {
-    material.uniforms.uWobbleIntensity.value = options.wobbleIntensity;
-  }
-
-  return material;
-}

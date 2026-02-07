@@ -1,16 +1,16 @@
 "use client";
 
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
 import { RubiksCube } from "./RubiksCube";
 import { PerspectiveGrid } from "./PerspectiveGrid";
 import { Particles } from "./Particles";
-import { Suspense, useRef } from "react";
+import { SketchBackground } from "./SketchBackground";
+import { Suspense, useRef, useEffect } from "react";
+import * as THREE from "three";
 import { Group } from "three";
 import {
   EffectComposer,
-  Bloom,
-  Vignette,
   ToneMapping,
   SMAA,
 } from "@react-three/postprocessing";
@@ -41,16 +41,33 @@ function PostProcessing() {
   return (
     <EffectComposer>
       <SMAA />
-      <Bloom
-        luminanceThreshold={0.7}
-        luminanceSmoothing={0.9}
-        intensity={0.25}
-        mipmapBlur
-      />
-      <Vignette darkness={0.25} offset={0.5} />
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
     </EffectComposer>
   );
+}
+
+function WebGLContextHandler() {
+  const { gl } = useThree();
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const onLost = (e: Event) => {
+      e.preventDefault();
+      console.warn("WebGL context lost - attempting recovery");
+    };
+    const onRestored = () => {
+      console.log("WebGL context restored");
+    };
+
+    canvas.addEventListener("webglcontextlost", onLost);
+    canvas.addEventListener("webglcontextrestored", onRestored);
+    return () => {
+      canvas.removeEventListener("webglcontextlost", onLost);
+      canvas.removeEventListener("webglcontextrestored", onRestored);
+    };
+  }, [gl]);
+
+  return null;
 }
 
 function LoadingFallback() {
@@ -112,27 +129,21 @@ export function Scene({ animationRefs }: SceneProps) {
         antialias: false,
         alpha: true,
         powerPreference: "high-performance",
+        toneMapping: THREE.NoToneMapping,
       }}
       style={{ background: "transparent" }}
-      onCreated={({ gl }) => {
-        const canvas = gl.domElement;
-        canvas.addEventListener("webglcontextlost", (e) => {
-          e.preventDefault();
-          console.warn("WebGL context lost - attempting recovery");
-        });
-        canvas.addEventListener("webglcontextrestored", () => {
-          console.log("WebGL context restored");
-        });
-      }}
     >
       <PerspectiveCamera makeDefault position={[0, 0, 8]} fov={50} />
+      <WebGLContextHandler />
 
       <Suspense fallback={<LoadingFallback />}>
+        {!isMobile && <SketchBackground animationRefs={animationRefs} mouseRefs={mouseRefs} />}
+
         <Lights />
 
-        <Particles count={400} animationRefs={animationRefs} />
+        <Particles count={300} animationRefs={animationRefs} />
 
-        <PerspectiveGrid animationRefs={animationRefs} />
+        <PerspectiveGrid animationRefs={animationRefs} mouseRefs={mouseRefs} />
 
         <CubeGroup
           animationRefs={animationRefs}

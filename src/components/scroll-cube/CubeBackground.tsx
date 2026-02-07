@@ -123,82 +123,10 @@ export function CubeBackground() {
 
   return (
     <div className="fixed inset-0 z-0">
-      {/* Cream paper background with subtle gradient */}
+      {/* Cream paper base - fallback behind shader */}
       <div
         className="absolute inset-0"
-        style={{
-          background: "linear-gradient(to bottom, #f8f4eb, #f0ebe0)",
-        }}
-      />
-
-      {/* Paper texture - fine grain pattern */}
-      <div
-        className="absolute inset-0 opacity-60"
-        style={{
-          backgroundImage: `
-            repeating-linear-gradient(
-              0deg,
-              transparent,
-              transparent 2px,
-              rgba(0, 0, 0, 0.02) 2px,
-              rgba(0, 0, 0, 0.02) 4px
-            ),
-            repeating-linear-gradient(
-              90deg,
-              transparent,
-              transparent 2px,
-              rgba(0, 0, 0, 0.015) 2px,
-              rgba(0, 0, 0, 0.015) 4px
-            )
-          `,
-        }}
-      />
-
-      {/* Paper fiber texture - diagonal lines */}
-      <div
-        className="absolute inset-0 opacity-30"
-        style={{
-          backgroundImage: `
-            repeating-linear-gradient(
-              45deg,
-              transparent,
-              transparent 10px,
-              rgba(139, 119, 101, 0.03) 10px,
-              rgba(139, 119, 101, 0.03) 11px
-            ),
-            repeating-linear-gradient(
-              -45deg,
-              transparent,
-              transparent 15px,
-              rgba(139, 119, 101, 0.02) 15px,
-              rgba(139, 119, 101, 0.02) 16px
-            )
-          `,
-        }}
-      />
-
-      {/* Subtle vignette for sketchbook feel */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse at center, transparent 50%, rgba(139, 119, 101, 0.15) 100%)",
-        }}
-      />
-
-      {/* Depth gradient - darker toward center for 3D depth illusion */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `
-            radial-gradient(
-              ellipse 70% 50% at 50% 45%,
-              rgba(180, 170, 155, 0.08) 0%,
-              rgba(200, 190, 175, 0.04) 40%,
-              transparent 70%
-            )
-          `,
-        }}
+        style={{ background: "#9e9588" }}
       />
 
       {/* Three.js Canvas with entry animation */}

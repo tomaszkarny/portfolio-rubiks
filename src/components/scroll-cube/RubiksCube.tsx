@@ -11,6 +11,7 @@ import {
 } from "three";
 import { RoundedBoxGeometry } from "three-stdlib";
 import { SketchMaterial } from "@/shaders/SketchMaterial";
+import { seededRandom } from "@/utils/noise";
 import type { AnimationRefs } from "./CubeBackground";
 
 interface RubiksCubeProps {
@@ -166,12 +167,6 @@ function easeOutBack(x: number): number {
 
 function easeOutQuad(x: number): number {
   return 1 - (1 - x) * (1 - x);
-}
-
-// Seeded random number generator for deterministic tremor values
-function seededRandom(seed: number): number {
-  const x = Math.sin(seed * 12.9898 + seed * 78.233) * 43758.5453;
-  return x - Math.floor(x);
 }
 
 // Helper: get phase progress (inlined in useFrame for perf)
