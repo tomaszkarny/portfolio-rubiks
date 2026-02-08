@@ -102,7 +102,7 @@ export default function Home() {
           socials={[
             { name: "GitHub", url: "https://github.com/tomaszkarny", icon: "github" },
             { name: "LinkedIn", url: "https://linkedin.com/in/tomaszkarny", icon: "linkedin" },
-            { name: "Twitter", url: "https://twitter.com/tomaszkarny", icon: "twitter" },
+            { name: "X", url: "https://x.com/tomaszkarny", icon: "x" },
           ]}
         />
       </div>
