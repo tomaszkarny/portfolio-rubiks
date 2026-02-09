@@ -1,7 +1,18 @@
 "use client";
 
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import {
+  CubeBlueprintThumbnail,
+  ParticleConstellationThumbnail,
+  ProductBlueprintThumbnail,
+  DashboardPanelThumbnail,
+  ScribbleFill,
+  HoverContentOverlay,
+  sepiaColors,
+} from "./thumbnails";
+import type { ReactNode } from "react";
+import type { ScribbleFillVariant } from "./thumbnails/scribbleFillData";
 
 interface Project {
   title: string;
@@ -48,151 +59,37 @@ const defaultProjects: Project[] = [
   },
 ];
 
-// Sepia color palette for consistent sketch style
-const sepiaColors = {
-  border: "rgba(45, 42, 38, 0.15)",
-  glow: "0 4px 24px rgba(45, 42, 38, 0.08)",
-  hoverGlow: "0 8px 32px rgba(45, 42, 38, 0.15)",
-  number: "#635d56",
-  gradient: "linear-gradient(135deg, rgba(45, 42, 38, 0.04) 0%, rgba(45, 42, 38, 0.01) 100%)",
-  tagBg: "rgba(45, 42, 38, 0.1)",
-  tagText: "#4a4540",
-  tagBorder: "rgba(45, 42, 38, 0.15)",
-};
+const thumbnailComponents: ReactNode[] = [
+  <CubeBlueprintThumbnail key="cube" featured />,
+  <ParticleConstellationThumbnail key="particles" />,
+  <ProductBlueprintThumbnail key="product" />,
+  <DashboardPanelThumbnail key="dashboard" />,
+];
 
-function ProjectThumbnail({ index, featured }: { index: number; featured?: boolean }) {
-  const thumbnails = [
-    // Project 01: Wireframe cube with floating lines
-    (
-      <div key="cube" className="relative w-full h-full flex items-center justify-center">
-        <div
-          className="w-20 h-20 border-2 relative"
-          style={{
-            borderColor: "#b85c38",
-            transform: "rotateX(15deg) rotateY(-20deg)",
-            transformStyle: "preserve-3d",
-          }}
-        >
-          <div
-            className="absolute inset-0 border-2"
-            style={{
-              borderColor: "rgba(184, 92, 56, 0.4)",
-              transform: "translateZ(40px)",
-            }}
-          />
-          <div
-            className="absolute top-0 left-0 w-full h-0 border-t-2"
-            style={{
-              borderColor: "rgba(184, 92, 56, 0.3)",
-              transform: "rotateX(-90deg) translateZ(0px)",
-              transformOrigin: "top",
-              height: "40px",
-            }}
-          />
-        </div>
-        {/* Floating accent lines */}
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full"
-            style={{
-              width: `${30 + i * 15}px`,
-              height: "1px",
-              backgroundColor: `rgba(184, 92, 56, ${0.15 + i * 0.05})`,
-              top: `${20 + i * 16}%`,
-              left: `${10 + i * 12}%`,
-              transform: `rotate(${-15 + i * 8}deg)`,
-            }}
-          />
-        ))}
-      </div>
-    ),
-    // Project 02: Particle dots
-    (
-      <div key="particles" className="relative w-full h-full overflow-hidden">
-        {[...Array(40)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full"
-            style={{
-              width: `${2 + (i % 4)}px`,
-              height: `${2 + (i % 4)}px`,
-              backgroundColor: i % 5 === 0 ? "#b85c38" : "rgba(184, 92, 56, 0.3)",
-              top: `${(i * 17 + i * i * 3) % 90 + 5}%`,
-              left: `${(i * 23 + i * i * 7) % 90 + 5}%`,
-              boxShadow: i % 5 === 0 ? "0 0 6px rgba(184, 92, 56, 0.4)" : "none",
-            }}
-          />
-        ))}
-      </div>
-    ),
-    // Project 03: 3D product box outline
-    (
-      <div key="product" className="relative w-full h-full flex items-center justify-center" style={{ perspective: "400px" }}>
-        <div
-          className="w-24 h-28 border-2 relative"
-          style={{
-            borderColor: "rgba(184, 92, 56, 0.6)",
-            transform: "rotateY(-25deg) rotateX(5deg)",
-            transformStyle: "preserve-3d",
-          }}
-        >
-          {/* Side face */}
-          <div
-            className="absolute top-0 right-0 h-full border-r-2"
-            style={{
-              width: "30px",
-              borderColor: "rgba(184, 92, 56, 0.3)",
-              transform: "rotateY(90deg) translateZ(0px)",
-              transformOrigin: "right",
-              background: "linear-gradient(180deg, rgba(184,92,56,0.08) 0%, transparent 100%)",
-            }}
-          />
-          {/* Top face */}
-          <div
-            className="absolute top-0 left-0 w-full border-t-2"
-            style={{
-              height: "20px",
-              borderColor: "rgba(184, 92, 56, 0.3)",
-              transform: "rotateX(-90deg)",
-              transformOrigin: "top",
-              background: "linear-gradient(90deg, rgba(184,92,56,0.06) 0%, transparent 100%)",
-            }}
-          />
-          {/* Inner detail lines */}
-          <div className="absolute inset-4 border border-dashed" style={{ borderColor: "rgba(184, 92, 56, 0.2)" }} />
-        </div>
-      </div>
-    ),
-    // Project 04: Data viz bars
-    (
-      <div key="dataviz" className="relative w-full h-full flex items-end justify-center gap-2 pb-8 px-8">
-        {[65, 40, 85, 55, 70, 45, 90, 60].map((h, i) => (
-          <div
-            key={i}
-            className="flex-1 rounded-t-sm"
-            style={{
-              height: `${h}%`,
-              backgroundColor: i % 3 === 0 ? "rgba(184, 92, 56, 0.7)" : "rgba(184, 92, 56, 0.25)",
-              maxWidth: "20px",
-            }}
-          />
-        ))}
-        {/* Grid lines */}
-        {[25, 50, 75].map((top) => (
-          <div
-            key={top}
-            className="absolute left-6 right-6"
-            style={{
-              top: `${top}%`,
-              height: "1px",
-              backgroundColor: "rgba(184, 92, 56, 0.1)",
-            }}
-          />
-        ))}
-      </div>
-    ),
-  ];
+const scribbleFillVariants: ScribbleFillVariant[] = [
+  "scribbleA",
+  "scribbleB",
+  "scribbleC",
+  "scribbleD",
+];
+
+const cardAccentColors = [
+  "rgba(184, 92, 56, 0.85)",   // terracotta
+  "rgba(86, 120, 90, 0.85)",   // sage green
+  "rgba(140, 100, 70, 0.85)",  // warm brown
+  "rgba(100, 80, 120, 0.85)",  // muted plum
+];
+
+function ProjectThumbnail({
+  index,
+  featured,
+  project,
+}: {
+  index: number;
+  featured?: boolean;
+  project: Project;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <div
@@ -200,11 +97,32 @@ function ProjectThumbnail({ index, featured }: { index: number; featured?: boole
         featured ? "h-64 md:h-80" : "h-48 md:h-56"
       }`}
       style={{ backgroundColor: "#1a1816" }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      {thumbnails[index] || thumbnails[0]}
+      {thumbnailComponents[index] || thumbnailComponents[0]}
+
+      {/* Scribble fill overlay - draws on hover */}
+      <ScribbleFill
+        id={`scribble-fill-${index}`}
+        variant={scribbleFillVariants[index] || "scribbleA"}
+        isHovered={isHovered}
+        accentColor={cardAccentColors[index] || cardAccentColors[0]}
+      />
+
+      {/* Hover content overlay */}
+      <HoverContentOverlay
+        isHovered={isHovered}
+        index={index}
+        title={project.title}
+        description={project.description}
+        tags={project.tags}
+        link={project.link}
+      />
+
       {/* Featured badge */}
       {featured && (
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 z-10">
           <span
             className="px-3 py-1 text-xs font-semibold rounded-full backdrop-blur-sm"
             style={{ backgroundColor: "rgba(184, 92, 56, 0.9)", color: "#fff" }}
@@ -258,7 +176,7 @@ function ProjectCard({
         />
 
         {/* Project thumbnail */}
-        <ProjectThumbnail index={index} featured={isFeatured} />
+        <ProjectThumbnail index={index} featured={isFeatured} project={project} />
 
         {/* Project number */}
         <span
