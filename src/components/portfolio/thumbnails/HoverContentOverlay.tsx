@@ -6,7 +6,6 @@ import { useReducedMotion } from "./shared";
 interface HoverContentOverlayProps {
   isHovered: boolean;
   index: number;
-  title: string;
   description: string;
   tags: string[];
   link?: string;
@@ -15,7 +14,6 @@ interface HoverContentOverlayProps {
 export function HoverContentOverlay({
   isHovered,
   index,
-  title,
   description,
   tags,
   link,
@@ -24,7 +22,7 @@ export function HoverContentOverlay({
 
   return (
     <motion.div
-      className="absolute inset-0 z-20 flex flex-col justify-between p-5"
+      className="absolute inset-0 z-20 flex flex-col justify-between p-5 md:p-6"
       style={{ pointerEvents: isHovered ? "auto" : "none" }}
       initial={{ opacity: 0 }}
       animate={isHovered ? { opacity: 1 } : { opacity: 0 }}
@@ -59,7 +57,7 @@ export function HoverContentOverlay({
         )}
       </div>
 
-      {/* Bottom content: title, description, tags */}
+      {/* Bottom content: description, tags */}
       <motion.div
         initial={{ y: prefersReducedMotion ? 0 : "3vh", opacity: 0 }}
         animate={
@@ -73,23 +71,17 @@ export function HoverContentOverlay({
             : { duration: 0.2 }
         }
       >
-        <h4
-          className="text-lg font-bold mb-1 leading-tight"
-          style={{ color: "#fff" }}
-        >
-          {title}
-        </h4>
         <p
-          className="text-xs mb-3 line-clamp-2 leading-relaxed"
+          className="text-sm md:text-base mb-4 leading-relaxed"
           style={{ color: "rgba(255, 255, 255, 0.75)" }}
         >
           {description}
         </p>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {tags.map((tag, i) => (
             <span
               key={i}
-              className="px-2 py-0.5 text-[10px] rounded-full font-medium"
+              className="px-3 py-1 text-xs md:text-sm rounded-full font-medium"
               style={{
                 backgroundColor: "rgba(255, 255, 255, 0.15)",
                 color: "rgba(255, 255, 255, 0.85)",

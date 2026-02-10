@@ -114,7 +114,6 @@ function ProjectThumbnail({
       <HoverContentOverlay
         isHovered={isHovered}
         index={index}
-        title={project.title}
         description={project.description}
         tags={project.tags}
         link={project.link}
@@ -187,35 +186,11 @@ function ProjectCard({
         </span>
 
         <h3
-          className="text-2xl md:text-3xl font-bold mb-3 transition-colors relative z-10"
+          className="text-2xl md:text-3xl font-bold mb-4 transition-colors relative z-10"
           style={{ color: "#2d2a26" }}
         >
           {project.title}
         </h3>
-
-        <p
-          className={`text-base md:text-lg mb-6 relative z-10 ${isFeatured ? "max-w-2xl" : ""}`}
-          style={{ color: "#4a4540" }}
-        >
-          {project.description}
-        </p>
-
-        {/* Tags */}
-        <div className="flex flex-wrap gap-2 mb-4 relative z-10">
-          {project.tags.map((tag, i) => (
-            <span
-              key={i}
-              className="px-3 py-1 text-sm rounded-full font-medium transition-all duration-200 hover:scale-105"
-              style={{
-                backgroundColor: sepiaColors.tagBg,
-                color: sepiaColors.tagText,
-                border: `1px solid ${sepiaColors.tagBorder}`,
-              }}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
 
         {/* View link */}
         {project.link && (
